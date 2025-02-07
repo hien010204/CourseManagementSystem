@@ -1,0 +1,6 @@
+@CourseManagementSystem_HostAddress = http://localhost:5180
+
+GET {{CourseManagementSystem_HostAddress}}/AuthController/
+Accept: application/json
+
+###
