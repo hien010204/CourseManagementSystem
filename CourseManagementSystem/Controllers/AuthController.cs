@@ -8,6 +8,8 @@ using System.Text;
 
 namespace CourseManagementSystem.Controllers
 {
+    [Route("[controller]")]
+    [ApiController]
     public class AuthController : Controller
     {
         private readonly IUserService _userService;
@@ -70,7 +72,7 @@ namespace CourseManagementSystem.Controllers
         }
 
         [HttpPost("register")]
-        public IActionResult Register([FromForm] string FullName, [FromForm] string username, [FromForm] string password, [FromForm] string email, [FromForm] string phonenumber, [FromForm] string Status)
+        public IActionResult Register([FromForm] string FullName, [FromForm] string username, [FromForm] string email, [FromForm] string password, [FromForm] string phonenumber)
         {
             // Kiểm tra xem username đã tồn tại chưa
             if (_userService.CheckUsernameExists(username))
@@ -93,7 +95,6 @@ namespace CourseManagementSystem.Controllers
                 Email = email,
                 PhoneNumber = phonenumber,
                 CreatedAt = DateTime.UtcNow,
-                Status = Status,
                 Role = "Student"  // Loại người dùng mặc định
             };
 
@@ -133,7 +134,6 @@ namespace CourseManagementSystem.Controllers
                 Username = createdUser.UserName,
                 Email = createdUser.Email,
                 PhoneNumber = createdUser.PhoneNumber,
-                Status = createdUser.Status
 
             });
 
