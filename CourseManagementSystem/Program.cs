@@ -58,6 +58,7 @@ namespace CourseManagementSystem
                 options.AddPolicy("AdminOnly", policy =>
                     policy.RequireRole("Admin"));
             });
+
             builder.Services.AddSwaggerGen(c =>
             {
 
