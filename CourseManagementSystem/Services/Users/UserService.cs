@@ -27,7 +27,7 @@ namespace CourseManagementSystem.Services.Users
             }
 
             // Nếu không phải admin, kiểm tra bcrypt cho mật khẩu đã mã hóa
-            if (user.Role != "Admin" && BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
+            if (user.Role != "Admin" && !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
             {
                 return null; // Mật khẩu không khớp
             }
