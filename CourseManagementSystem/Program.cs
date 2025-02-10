@@ -1,4 +1,5 @@
 ﻿using CourseManagementSystem.Filter;
+using CourseManagementSystem.Services.Email;
 using CourseManagementSystem.Services.Users;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -14,14 +15,14 @@ namespace CourseManagementSystem
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
-            builder.Services.AddScoped<IUserService, UserService>();
 
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
             builder.Services.AddHttpClient();
+            // Add services to the container.
+            builder.Services.AddScoped<IUserService, UserService>();
             // Đăng ký DbContext để kết nối với cơ sở dữ liệu
             builder.Services.AddDbContext<CourseManagementContext>(options =>
             {
@@ -50,6 +51,8 @@ namespace CourseManagementSystem
                     ValidateLifetime = true
                 };
             });
+            builder.Services.AddSingleton<EmailService>(); // Đăng ký EmailService như một singleton
+            builder.Services.AddControllers();
 
             // Cấu hình phân quyền cho Admin
             builder.Services.AddAuthorization(options =>

@@ -44,6 +44,7 @@ namespace CourseManagementSystem.Controllers
 
 
         // API để lấy thông tin người dùng theo ID
+        [Authorize(Roles = "Admin")]
         [HttpGet("{id}")]
         public ActionResult<User> GetUserById(int id)
         {
@@ -55,13 +56,7 @@ namespace CourseManagementSystem.Controllers
             return user;
         }
 
-        // API để lấy tất cả người dùng
-        [HttpGet]
-        public ActionResult<List<User>> GetAllUsers()
-        {
-            var users = _userService.GetAllUsers();
-            return Ok(users);
-        }
+
     }
 
 }
