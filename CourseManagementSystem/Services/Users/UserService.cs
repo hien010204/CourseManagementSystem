@@ -21,9 +21,13 @@ namespace CourseManagementSystem.Services.Users
             }
 
             // Nếu user là admin, so sánh mật khẩu không mã hóa
-            if (user.Role == "Admin" && user.PasswordHash == password)
+            if (user.Role == "Admin")
             {
-                return user; // Đăng nhập thành công cho admin với mật khẩu không mã hóa
+                if (user.PasswordHash == password)
+                {
+                    return user; // Đăng nhập thành công cho admin với mật khẩu không mã hóa
+                }
+                return null;
             }
 
             // Nếu không phải admin, kiểm tra bcrypt cho mật khẩu đã mã hóa
