@@ -1,5 +1,7 @@
 ﻿using CourseManagementSystem.Models;
+using CourseManagementSystem.Services.Email;
 using CourseManagementSystem.Services.Users;
+using MailKit.Net.Smtp;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -79,7 +81,7 @@ namespace CourseManagementSystem.Controllers
                 return BadRequest(new { message = "Tên đăng nhập đã tồn tại." });
             }
 
-            // Kiểm tra xem email đã tồn tại chưa
+            //Kiểm tra xem email đã tồn tại chưa
             if (_userService.CheckEmailExists(email))
             {
                 return BadRequest(new { message = "Email đã tồn tại." });
@@ -89,7 +91,7 @@ namespace CourseManagementSystem.Controllers
             var newUser = new User
             {
                 UserName = username,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(password), // Mã hóa mật khẩu
+                PasswordHash = password, // Mã hóa mật khẩu
                 FullName = FullName,
                 Email = email,
                 PhoneNumber = phonenumber,
@@ -103,21 +105,34 @@ namespace CourseManagementSystem.Controllers
             {
                 return BadRequest(new { message = "Đăng ký không thành công." });
             }
-            /*
+
             // Gửi email xác nhận đăng ký thành công
             try
             {
+                // Tạo dịch vụ email và cấu hình email cần gửi
                 var emailService = new EmailService(_config);
                 var subject = "Chào mừng bạn đã đăng ký thành công tại Cousera";
                 var body = $"Xin chào {newUser.UserName},\n\nCảm ơn bạn đã đăng ký tài khoản tại Cousera.\n\nChúng tôi hy vọng bạn sẽ có những trải nghiệm tuyệt vời khi sử dụng dịch vụ của chúng tôi.\n\nTrân trọng,\nĐội ngũ Cousera";
+
+                // Gửi email xác nhận
                 emailService.SendEmail(newUser.Email, subject, body);
+            }
+            catch (SmtpCommandException smtpEx)
+            {
+                // Nếu lỗi SMTP (ví dụ: không thể kết nối tới server hoặc xác thực thất bại)
+                // Thông báo lỗi rõ ràng hơn
+                return BadRequest(new { message = "Lỗi khi kết nối với dịch vụ gửi email. Vui lòng thử lại sau." });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = "Gửi email xác nhận thất bại." });
+                // Xử lý lỗi chung (chưa xác định rõ nguyên nhân)
+                Console.WriteLine($"General Error: {ex.Message}");
+                Console.WriteLine(ex.StackTrace);  // Cung cấp thông tin chi tiết về lỗi
+                return BadRequest(new { message = "Gửi email xác nhận thất bại.", errorDetails = ex.Message });
             }
 
-            */
+
+
             return Ok(new
             {
                 UserId = createdUser.IdUser,
@@ -138,23 +153,6 @@ namespace CourseManagementSystem.Controllers
         }
 
 
-        [HttpPut("update-status/{userId}")]
-        public IActionResult UpdateUserStatus(int userId)
-        {
-            var user = _userService.GetUserById(userId);
-            if (user == null)
-            {
-                return NotFound(new { message = "Không tìm thấy người dùng." });
-            }
-
-            // Cập nhật trạng thái của người dùng
-            user.Status = user.Status == "Active" ? "Inactive" : "Active";  // Đổi từ Active thành Inactive và ngược lại
-            user.UpdatedAt = DateTime.UtcNow;
-            _userService.UpdateUser(user);
-
-            return Ok(new { message = "Trạng thái của người dùng đã được cập nhật.", newStatus = user.Status });
-
-        }
 
         [HttpPut("change-password/{userId}")]
         public IActionResult ChangePassword(int userId, [FromForm] string passwordlast, [FromForm] string password)
@@ -176,22 +174,6 @@ namespace CourseManagementSystem.Controllers
             return Ok(new { message = "Password người dùng đã được cập nhật." });
 
         }
-        [HttpGet("all-users")]
-        public IActionResult GetAllUsers()
-        {
-            var users = _userService.GetAllUsers()
-                .Select(user => new
-                {
-                    user.IdUser,
-                    user.UserName,
-                    user.FullName,
-                    user.Email,
-                    user.Role,
-                    user.CreatedAt,
-                    user.Status
-                }).ToList();
 
-            return Ok(users);
-        }
     }
 }
