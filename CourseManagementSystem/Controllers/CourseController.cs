@@ -71,5 +71,155 @@ namespace CourseManagementSystem.Controllers
             });
         }
 
+        [Authorize(Roles = "Admin,Teacher")]
+        [HttpPut("edit/{courseId}")]
+        public IActionResult EditCourse(
+            [FromRoute] int courseId,
+            [FromForm] string courseName,
+            [FromForm] string description,
+            [FromForm] DateTime startDate,
+            [FromForm] DateTime endDate)
+        {
+            // Lấy ID của người dùng hiện tại từ JWT (thay "IdUser" thành đúng tên claim bạn đã sử dụng khi tạo token)
+            var currentUserIdClaim = User.FindFirst("IdUser");
+
+            if (currentUserIdClaim == null)
+            {
+                return Unauthorized(new { message = "Không tìm thấy thông tin người dùng trong token." });
+            }
+
+            var currentUserId = int.Parse(currentUserIdClaim.Value);
+
+            // Kiểm tra quyền
+            var currentUser = _userService.GetUserById(currentUserId);
+            if (currentUser == null || (currentUser.Role != "Admin" && currentUser.Role != "Teacher"))
+            {
+                return Forbid();
+            }
+
+            // Tìm khóa học cần chỉnh sửa
+            var courseToEdit = _courseService.GetCourseById(courseId);
+            if (courseToEdit == null)
+            {
+                return NotFound(new { message = "Khóa học không tồn tại." });
+            }
+
+            // Chỉnh sửa thông tin khóa học
+            courseToEdit.CourseName = courseName;
+            courseToEdit.Description = description;
+            courseToEdit.StartDate = DateOnly.FromDateTime(startDate.Date);
+            courseToEdit.EndDate = DateOnly.FromDateTime(endDate.Date);
+
+            var updatedCourse = _courseService.EditCourse(courseToEdit);
+
+            return Ok(new
+            {
+                message = "Chỉnh sửa khóa học thành công!",
+                course = updatedCourse.CourseName,
+                startDate = updatedCourse.StartDate,
+                endDate = updatedCourse.EndDate
+            });
+        }
+
+
+        [HttpGet("{courseId}")]
+        public IActionResult GetCourseById([FromRoute] int courseId)
+        {
+            // Lấy thông tin khóa học từ dịch vụ
+            var course = _courseService.GetCourseById(courseId);
+            if (course == null)
+            {
+                return NotFound(new { message = "Khóa học không tồn tại." });
+            }
+
+            return Ok(new
+            {
+                course.CourseName,
+                course.Description,
+                startDate = course.StartDate,
+                endDate = course.EndDate,
+                createdBy = course.CreatedBy
+            });
+        }
+
+        [Authorize(Roles = "Admin,Teacher")]
+        [HttpGet("all-courses")]
+        public IActionResult GetAllCourses()
+        {
+            var courses = _courseService.GetAllCourses();
+            if (courses == null || !courses.Any())
+            {
+                return NotFound(new { message = "Không có khóa học nào." });
+            }
+
+            var courseList = courses.Select(course => new
+            {
+                course.CourseId,
+                course.CourseName,
+                course.Description,
+                startDate = course.StartDate,
+                endDate = course.EndDate
+            }).ToList();
+
+            return Ok(courseList);
+
+        }
+
+        // API xóa khóa học (Admin có thể xóa khóa học)
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("delete/{courseId}")]
+        public IActionResult DeleteCourse([FromRoute] int courseId)
+        {
+            // Kiểm tra sự tồn tại của khóa học
+            var courseToDelete = _courseService.GetCourseById(courseId);
+            if (courseToDelete == null)
+            {
+                return NotFound(new { message = "Khóa học không tồn tại." });
+            }
+
+            // Xóa khóa học
+            var isDeleted = _courseService.DeleteCourse(courseId);
+            if (!isDeleted)
+            {
+                return BadRequest(new { message = "Xóa khóa học không thành công." });
+            }
+
+            return Ok(new { message = "Xóa khóa học thành công!" });
+        }
+
+
+        [Authorize]
+        [HttpGet("my-courses")]
+        public IActionResult GetUserCourses()
+        {
+            // Lấy ID người dùng từ JWT
+            var currentUserIdClaim = User.FindFirst("IdUser");
+            if (currentUserIdClaim == null)
+            {
+                return Unauthorized(new { message = "Không tìm thấy thông tin người dùng trong token." });
+            }
+
+            var currentUserId = int.Parse(currentUserIdClaim.Value);
+
+            // Lấy các khóa học của người dùng 
+            var userCourses = _courseService.GetCoursesByUserId(currentUserId);
+
+            if (userCourses == null || !userCourses.Any())
+            {
+                return NotFound(new { message = "Người dùng chưa tham gia khóa học nào." });
+            }
+
+            var courseList = userCourses.Select(course => new
+            {
+                course.CourseId,
+                course.CourseName,
+                course.Description,
+                startDate = course.StartDate,
+                endDate = course.EndDate
+            }).ToList();
+
+            return Ok(courseList);
+        }
+
     }
 }
