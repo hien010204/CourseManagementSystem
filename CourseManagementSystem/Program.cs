@@ -1,5 +1,7 @@
 ﻿using CourseManagementSystem.Filter;
+using CourseManagementSystem.Services.Courses;
 using CourseManagementSystem.Services.Email;
+using CourseManagementSystem.Services.Models;
 using CourseManagementSystem.Services.Users;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -92,6 +94,8 @@ namespace CourseManagementSystem
                     }
                 });
             });
+
+            builder.Services.AddScoped<ICourseService, CourseService>();
             var app = builder.Build();
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())

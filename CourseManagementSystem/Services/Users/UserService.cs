@@ -89,19 +89,7 @@ namespace CourseManagementSystem.Services.Users
 
         public User Register(User user)
         {
-            // Kiểm tra xem username đã tồn tại chưa
-            if (CheckUsernameExists(user.UserName))
-            {
-                return null;
-            }
 
-            // Kiểm tra xem email đã tồn tại chưa
-            if (CheckEmailExists(user.Email))
-            {
-                return null;
-            }
-
-            // Mã hóa mật khẩu trước khi lưu
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.PasswordHash);
 
             // Thêm user mới vào database
@@ -135,15 +123,7 @@ namespace CourseManagementSystem.Services.Users
             }
         }
 
-        public void DeleteUser(int userId)
-        {
-            var user = _context.Users.FirstOrDefault(u => u.IdUser == userId);
-            if (user != null)
-            {
-                _context.Users.Remove(user);
-                _context.SaveChanges();
-            }
-        }
+
 
         // Thêm phương thức thêm người dùng
         public User AddUser(User user)

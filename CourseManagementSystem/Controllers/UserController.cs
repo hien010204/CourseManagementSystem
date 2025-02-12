@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CourseManagementSystem.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("[controller]")]
     [ApiController]
     [Authorize] // Chỉ cho phép người dùng đã xác thực qua JWT
     public class UserController : ControllerBase
@@ -56,7 +56,44 @@ namespace CourseManagementSystem.Controllers
             return user;
         }
 
+        //Lock and Unlock User
+        [Authorize(Roles = "Admin")]
+        [HttpPut("update-status/{userId}")]
+        public IActionResult UpdateUserStatus(int userId)
+        {
+            var user = _userService.GetUserById(userId);
+            if (user == null)
+            {
+                return NotFound(new { message = "Không tìm thấy người dùng." });
+            }
 
+            // Cập nhật trạng thái của người dùng
+            user.Status = user.Status == "Active" ? "Inactive" : "Active";  // Đổi từ Active thành Inactive và ngược lại
+            user.UpdatedAt = DateTime.UtcNow;
+            _userService.UpdateUser(user);
+
+            return Ok(new { message = "Trạng thái của người dùng đã được cập nhật.", newStatus = user.Status });
+
+        }
+        //get all users
+        [Authorize(Roles = "Admin")]
+        [HttpGet("all-users")]
+        public IActionResult GetAllUsers()
+        {
+            var users = _userService.GetAllUsers()
+                .Select(user => new
+                {
+                    user.IdUser,
+                    user.UserName,
+                    user.FullName,
+                    user.Email,
+                    user.Role,
+                    user.CreatedAt,
+                    user.Status
+                }).ToList();
+
+            return Ok(users);
+        }
     }
 
 }

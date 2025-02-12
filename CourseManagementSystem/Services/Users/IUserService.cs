@@ -19,7 +19,6 @@ namespace CourseManagementSystem.Services.Users
         bool CheckEmailExists(string email);
         void UpdateUser(User user);
         void ChangePassword(User user);
-        void DeleteUser(int userId); // Thêm phương thức xóa người dùng
         User AddUser(User user); // Thêm phương thức thêm người dùng
         void Logout();
     }

@@ -1,4 +1,5 @@
 ﻿using MailKit.Net.Smtp;
+using MailKit.Security;
 using MimeKit;
 namespace CourseManagementSystem.Services.Email
 
@@ -15,7 +16,7 @@ namespace CourseManagementSystem.Services.Email
         public void SendEmail(string toEmail, string subject, string body)
         {
             var emailMessage = new MimeMessage();
-            emailMessage.From.Add(new MailboxAddress("Cousera", _config["EmailSettings:SenderEmail"]));
+            emailMessage.From.Add(new MailboxAddress("Coursera", _config["EmailSettings:SenderEmail"]));
             emailMessage.To.Add(new MailboxAddress(toEmail, toEmail));
             emailMessage.Subject = subject;
             emailMessage.Body = new TextPart("plain") { Text = body };
@@ -24,17 +25,31 @@ namespace CourseManagementSystem.Services.Email
             {
                 using (var client = new SmtpClient())
                 {
-                    client.Connect(_config["EmailSettings:SmtpServer"], int.Parse(_config["EmailSettings:Port"]), MailKit.Security.SecureSocketOptions.StartTls);
-                    client.Authenticate(_config["EmailSettings:SenderEmail"], _config["EmailSettings:SenderPassword"]);
+                    // Cấu hình server SMTP, cổng và bảo mật
+                    var smtpServer = _config["EmailSettings:SmtpServer"];
+                    var port = int.TryParse(_config["EmailSettings:Port"], out var parsedPort) ? parsedPort : 587;
+                    var useSsl = bool.Parse(_config["EmailSettings:UseSsl"]);
+
+                    // Kết nối đến server SMTP với SSL hoặc TLS
+                    client.Connect(smtpServer, port, useSsl ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTls);
+
+                    // Xác thực người gửi
+                    var senderEmail = _config["EmailSettings:SenderEmail"];
+                    var senderPassword = _config["EmailSettings:SenderPassword"];
+                    client.Authenticate(senderEmail, senderPassword);
+
+                    // Gửi email
                     client.Send(emailMessage);
                     client.Disconnect(true);
                 }
             }
             catch (Exception ex)
             {
+                // Log lỗi chi tiết nếu có
                 Console.WriteLine($"Error sending email: {ex.Message}");
+                throw new InvalidOperationException("Gửi email thất bại, vui lòng thử lại.", ex);
             }
         }
     }
-
 }
+
