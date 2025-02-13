@@ -13,6 +13,8 @@ public partial class CourseEnrollment
 
     public DateTime? EnrollmentDate { get; set; }
 
+    public string? EnrollmentStatus { get; set; }
+
     public virtual Course Course { get; set; } = null!;
 
     public virtual User Student { get; set; } = null!;

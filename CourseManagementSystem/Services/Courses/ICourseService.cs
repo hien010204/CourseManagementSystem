@@ -1,4 +1,5 @@
 ﻿
+using CourseManagementSystem.DTO;
 using CourseManagementSystem.Models;
 
 namespace CourseManagementSystem.Services.Models
@@ -11,5 +12,8 @@ namespace CourseManagementSystem.Services.Models
         List<Course> GetAllCourses();
         List<Course> GetCoursesByUserId(int userId);
         public bool DeleteCourse(int courseId);
+        bool EnrollInCourse(int courseId, int userId);
+        List<CourseDto> GetUserCourses(int userId);
+        public bool ConfirmEnrollment(int courseId, int studentId);
     }
 }

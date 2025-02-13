@@ -1,4 +1,5 @@
-﻿using CourseManagementSystem.Models;
+﻿using CourseManagementSystem.DTO;
+using CourseManagementSystem.Models;
 using CourseManagementSystem.Services.Models;
 
 namespace CourseManagementSystem.Services.Courses
@@ -41,7 +42,7 @@ namespace CourseManagementSystem.Services.Courses
             // Save the changes to the database
             _context.SaveChanges();
 
-            // Return the updated course
+            // Return the updated course    
             return existingCourse;
         }
         public Course GetCourseById(int courseId)
@@ -51,14 +52,16 @@ namespace CourseManagementSystem.Services.Courses
 
         public List<Course> GetCoursesByUserId(int userId)
         {
+            // Lấy danh sách các Enrollment của người dùng từ bảng Course_Enrollments
+            var enrollments = _context.CourseEnrollments
+                                       .Where(e => e.StudentId == userId)
+                                       .Select(e => e.CourseId)
+                                       .ToList();
+
+            // Dùng danh sách CourseID để truy vấn thông tin khóa học
             var courses = _context.Courses
-                .Join(_context.CourseEnrollments,
-                      course => course.CourseId,
-                      enrollment => enrollment.CourseId,
-                      (course, enrollment) => new { course, enrollment })
-                .Where(x => x.enrollment.StudentId == userId)
-                .Select(x => x.course)
-                .ToList();
+                                  .Where(c => enrollments.Contains(c.CourseId))
+                                  .ToList();
 
             return courses;
         }
@@ -112,8 +115,84 @@ namespace CourseManagementSystem.Services.Courses
             return true;
         }
 
+        // Phương thức đăng ký khóa học
+        public bool EnrollInCourse(int courseId, int userId)
+        {
+            // Kiểm tra xem khóa học có tồn tại không
+            var course = _context.Courses.FirstOrDefault(c => c.CourseId == courseId);
+            if (course == null)
+            {
+                return false; // Khóa học không tồn tại
+            }
 
+            // Kiểm tra xem người dùng đã đăng ký khóa học này chưa
+            var existingEnrollment = _context.CourseEnrollments
+                                             .FirstOrDefault(e => e.CourseId == courseId && e.StudentId == userId);
+            if (existingEnrollment != null)
+            {
+                return false; // Người dùng đã đăng ký khóa học này rồi
+            }
 
+            // Thêm người dùng vào khóa học
+            var enrollment = new CourseEnrollment
+            {
+                CourseId = courseId,
+                StudentId = userId,
+                EnrollmentDate = DateTime.Now
+            };
 
+            _context.CourseEnrollments.Add(enrollment);
+            _context.SaveChanges();
+
+            return true; // Đăng ký thành công
+        }
+
+        public List<CourseDto> GetUserCourses(int userId)
+        {
+            // Lấy các khóa học mà người dùng đã đăng ký
+            var userCourses = _context.Courses
+                                      .Where(course => _context.CourseEnrollments
+                                      .Any(enrollment => enrollment.CourseId == course.CourseId && enrollment.StudentId == userId))
+                                      .ToList();
+
+            if (userCourses == null || !userCourses.Any())
+            {
+                return null;  // Nếu không có khóa học nào
+            }
+
+            // Lấy thông tin khóa học và trạng thái đăng ký
+            var courseList = userCourses.Select(course => new CourseDto
+            {
+                CourseId = course.CourseId,
+                CourseName = course.CourseName,
+                Description = course.Description,
+                StartDate = course.StartDate,
+                EndDate = course.EndDate,
+                EnrollmentStatus = _context.CourseEnrollments
+                                   .Where(e => e.CourseId == course.CourseId && e.StudentId == userId)
+                                   .Select(e => e.EnrollmentStatus)  // Trạng thái đăng ký từ CourseEnrollments
+                                   .FirstOrDefault()  // Lấy trạng thái đầu tiên
+            }).ToList();
+
+            return courseList;
+        }
+
+        public bool ConfirmEnrollment(int courseId, int studentId)
+        {
+            // Kiểm tra xem khóa học và học sinh có tồn tại trong bảng CourseEnrollments không
+            var enrollment = _context.CourseEnrollments
+                                     .FirstOrDefault(e => e.CourseId == courseId && e.StudentId == studentId && e.EnrollmentStatus == "Pending");
+
+            if (enrollment == null)
+            {
+                return false; // Nếu không có đăng ký nào ở trạng thái Pending
+            }
+
+            // Cập nhật trạng thái đăng ký thành Confirmed
+            enrollment.EnrollmentStatus = "Confirmed";
+            _context.SaveChanges();
+
+            return true;
+        }
     }
 }
