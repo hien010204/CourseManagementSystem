@@ -122,7 +122,7 @@ namespace CourseManagementSystem.Controllers
         }
 
 
-        [HttpGet("{courseId}")]
+        [HttpGet("information/{courseId}")]
         public IActionResult GetCourseById([FromRoute] int courseId)
         {
             // Lấy thông tin khóa học từ dịch vụ
@@ -201,25 +201,73 @@ namespace CourseManagementSystem.Controllers
 
             var currentUserId = int.Parse(currentUserIdClaim.Value);
 
-            // Lấy các khóa học của người dùng 
-            var userCourses = _courseService.GetCoursesByUserId(currentUserId);
+            // Lấy các khóa học mà người dùng đã đăng ký từ service
+            var courseList = _courseService.GetUserCourses(currentUserId);
 
-            if (userCourses == null || !userCourses.Any())
+            if (courseList == null || !courseList.Any())
             {
-                return NotFound(new { message = "Người dùng chưa tham gia khóa học nào." });
+                return NotFound(new { message = "Người dùng chưa đăng ký khóa học nào." });
             }
-
-            var courseList = userCourses.Select(course => new
-            {
-                course.CourseId,
-                course.CourseName,
-                course.Description,
-                startDate = course.StartDate,
-                endDate = course.EndDate
-            }).ToList();
 
             return Ok(courseList);
         }
+
+
+
+        [Authorize]
+        [HttpPost("enroll/{courseId}")]
+        public IActionResult EnrollInCourse([FromRoute] int courseId)
+        {
+            // Lấy ID người dùng từ JWT
+            var currentUserIdClaim = User.FindFirst("IdUser");
+            if (currentUserIdClaim == null)
+            {
+                return Unauthorized(new { message = "Không tìm thấy thông tin người dùng trong token." });
+            }
+
+            var currentUserId = int.Parse(currentUserIdClaim.Value);
+
+            // Gọi phương thức EnrollInCourse trong CourseService để đăng ký
+            var isEnrolled = _courseService.EnrollInCourse(courseId, currentUserId);
+
+            if (!isEnrolled)
+            {
+                return BadRequest(new { message = "Không thể đăng ký khóa học (khóa học không tồn tại hoặc bạn đã đăng ký rồi)." });
+            }
+
+            return Ok(new { message = "Đăng ký khóa học thành công!" });
+        }
+
+        [Authorize(Roles = "Admin,Teacher")]
+        [HttpPost("confirm-enrollment/{courseId}/{studentId}")]
+        public IActionResult ConfirmEnrollment(int courseId, int studentId)
+        {
+            // Kiểm tra quyền của người dùng (Admin hoặc Teacher)
+            var currentUserIdClaim = User.FindFirst("IdUser");
+            if (currentUserIdClaim == null)
+            {
+                return Unauthorized(new { message = "Không tìm thấy thông tin người dùng trong token." });
+            }
+
+            var currentUserId = int.Parse(currentUserIdClaim.Value);
+            var currentUser = _userService.GetUserById(currentUserId);
+
+            if (currentUser == null || (currentUser.Role != "Admin" && currentUser.Role != "Teacher"))
+            {
+                return Forbid(); // Nếu người dùng không phải Admin hoặc Teacher
+            }
+
+            // Gọi service để xác nhận đăng ký
+            var result = _courseService.ConfirmEnrollment(courseId, studentId);
+
+            if (!result)
+            {
+                return NotFound(new { message = "Không tìm thấy đăng ký nào với trạng thái Pending." });
+            }
+
+            return Ok(new { message = "Đăng ký học sinh vào khóa học đã được xác nhận." });
+        }
+
 
     }
 }
