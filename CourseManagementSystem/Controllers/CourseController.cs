@@ -142,7 +142,7 @@ namespace CourseManagementSystem.Controllers
             });
         }
 
-        [Authorize(Roles = "Admin,Teacher")]
+
         [HttpGet("all-courses")]
         public IActionResult GetAllCourses()
         {

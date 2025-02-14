@@ -135,7 +135,6 @@ namespace CourseManagementSystem.Controllers
 
             return Ok(new
             {
-                UserId = createdUser.IdUser,
                 FullName = createdUser.FullName,
                 Username = createdUser.UserName,
                 Email = createdUser.Email,
