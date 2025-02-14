@@ -59,7 +59,13 @@ namespace CourseManagementSystem.Services.Courses
                                        .ToList();
 
             // Dùng danh sách CourseID để truy vấn thông tin khóa học
-            var courses = _context.Courses
+            var courses = _context.Courses.Select(c => new Course
+            {
+                CourseName = c.CourseName,
+                Description = c.Description,
+                StartDate = c.StartDate,
+                EndDate = c.EndDate
+            })
                                   .Where(c => enrollments.Contains(c.CourseId))
                                   .ToList();
 
@@ -68,7 +74,14 @@ namespace CourseManagementSystem.Services.Courses
         public List<Course> GetAllCourses()
         {
             // Lấy danh sách tất cả khóa học từ cơ sở dữ liệu
-            return _context.Courses.ToList();
+            return _context.Courses.Select(c => new Course
+            {
+                CourseName = c.CourseName,
+                Description = c.Description,
+                StartDate = c.StartDate,
+                EndDate = c.EndDate
+            }).ToList();
+
         }
 
         public bool DeleteCourse(int courseId)
@@ -163,7 +176,6 @@ namespace CourseManagementSystem.Services.Courses
             // Lấy thông tin khóa học và trạng thái đăng ký
             var courseList = userCourses.Select(course => new CourseDto
             {
-                CourseId = course.CourseId,
                 CourseName = course.CourseName,
                 Description = course.Description,
                 StartDate = course.StartDate,
