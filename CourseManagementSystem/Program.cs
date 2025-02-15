@@ -95,15 +95,29 @@ namespace CourseManagementSystem
                 });
             });
 
+
+
             builder.Services.AddScoped<ICourseService, CourseService>();
             var app = builder.Build();
             // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
+            //if (app.Environment.IsDevelopment())
+            //{
+            //    app.UseSwagger();
+            //    app.UseSwaggerUI();
+            //}
+            app.UseSwagger();
+            app.UseSwaggerUI(x =>
             {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
 
+                x.SwaggerEndpoint("/swagger/v1/swagger.json", "Web API V1");
+
+#if DEBUG
+                x.RoutePrefix = "swagger"; // For localhost
+#else
+                                x.RoutePrefix = string.Empty; //  For azure
+#endif
+            }
+            );
 
             app.UseHttpsRedirection();
 
