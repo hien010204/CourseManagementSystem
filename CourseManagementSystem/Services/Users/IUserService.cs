@@ -14,12 +14,14 @@ namespace CourseManagementSystem.Services.Users
         User Register(User user);
         List<User> GetAllUsers();
         User GetUserById(int userId);
-
+        public User GetUserByUsernameOrEmail(string usernameOrEmail);
         bool CheckUsernameExists(string username);
         bool CheckEmailExists(string email);
         void UpdateUser(User user);
         void ChangePassword(User user);
         User AddUser(User user); // Thêm phương thức thêm người dùng
         void Logout();
+        void SavePasswordResetCode(int idUser, string verificationCode);
+        string GetPasswordResetCode(int idUser);
     }
 }

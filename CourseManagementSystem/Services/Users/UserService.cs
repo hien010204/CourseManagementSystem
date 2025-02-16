@@ -81,7 +81,11 @@ namespace CourseManagementSystem.Services.Users
                     CreatedAt = u.CreatedAt
                 }).FirstOrDefault();
         }
-
+        public User GetUserByUsernameOrEmail(string usernameOrEmail)
+        {
+            return _context.Users
+                .FirstOrDefault(u => u.UserName == usernameOrEmail || u.Email == usernameOrEmail);
+        }
         public void Logout()
         {
 
@@ -148,5 +152,46 @@ namespace CourseManagementSystem.Services.Users
 
             return user;  // Trả về thông tin người dùng sau khi đăng ký thành công
         }
+
+        public void SavePasswordResetCode(int idUser, string verificationCode)
+        {
+            // Tìm người dùng theo Id
+            var user = _context.Users.FirstOrDefault(u => u.IdUser == idUser);
+
+            // Nếu người dùng không tồn tại, ném lỗi
+            if (user == null)
+            {
+                throw new Exception("User not found.");
+            }
+
+            // Lưu mã xác minh và thời gian hết hạn (1 giờ từ hiện tại)
+            user.PasswordResetCode = verificationCode;
+            user.PasswordResetCodeExpiresAt = DateTime.UtcNow.AddHours(1);  // Mã sẽ hết hạn sau 1 giờ
+
+            // Lưu thay đổi vào cơ sở dữ liệu
+            _context.SaveChanges();
+        }
+
+        public string GetPasswordResetCode(int idUser)
+        {
+            // Tìm người dùng theo Id
+            var user = _context.Users.FirstOrDefault(u => u.IdUser == idUser);
+
+            // Nếu người dùng không tồn tại, trả về null hoặc ném lỗi
+            if (user == null)
+            {
+                throw new Exception("User not found.");
+            }
+
+            // Kiểm tra nếu mã đã hết hạn
+            if (user.PasswordResetCodeExpiresAt < DateTime.UtcNow)
+            {
+                return null;  // Mã đã hết hạn
+            }
+
+            // Trả về mã xác minh còn hiệu lực
+            return user.PasswordResetCode;
+        }
+
     }
 }

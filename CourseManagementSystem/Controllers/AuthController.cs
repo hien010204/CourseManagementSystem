@@ -174,5 +174,73 @@ namespace CourseManagementSystem.Controllers
 
         }
 
+
+        [HttpPost("forgot-password")]
+        public IActionResult ForgotPassword([FromForm] string usernameOrEmail)
+        {
+            // Kiểm tra nếu người dùng có email hoặc tên người dùng đã đăng ký không
+            var user = _userService.GetUserByUsernameOrEmail(usernameOrEmail);
+
+            if (user == null)
+            {
+                return NotFound(new { message = "Không tìm thấy tài khoản với tên người dùng hoặc email này." });
+            }
+
+            // Tạo mã xác minh hoặc liên kết thay đổi mật khẩu
+            var verificationCode = Guid.NewGuid().ToString(); // Tạo một mã xác minh ngẫu nhiên
+
+            // Lưu mã xác minh vào cơ sở dữ liệu hoặc gửi qua email
+            // Giả sử chúng ta gửi mã qua email
+            try
+            {
+                // Tạo dịch vụ email và cấu hình email cần gửi
+                var emailService = new EmailService(_config);
+                var subject = "Yêu cầu thay đổi mật khẩu";
+                var body = $"Xin chào {user.UserName},\n\nBạn đã yêu cầu thay đổi mật khẩu.\n\nSử dụng mã xác minh sau để tạo mật khẩu mới: {verificationCode}\n\nNếu bạn không yêu cầu thay đổi mật khẩu, vui lòng bỏ qua email này.\n\nTrân trọng,\nĐội ngũ hỗ trợ";
+
+                // Gửi email xác nhận
+                emailService.SendEmail(user.Email, subject, body);
+
+                // Lưu mã xác minh vào cơ sở dữ liệu để đối chiếu khi người dùng cung cấp mã này
+                _userService.SavePasswordResetCode(user.IdUser, verificationCode);
+            }
+            catch (SmtpCommandException smtpEx)
+            {
+                return BadRequest(new { message = "Lỗi khi kết nối với dịch vụ gửi email. Vui lòng thử lại sau." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = "Gửi email thất bại.", errorDetails = ex.Message });
+            }
+
+            return Ok(new { message = "Mã xác minh đã được gửi đến email của bạn. Vui lòng kiểm tra email để thay đổi mật khẩu." });
+        }
+
+        [HttpPut("reset-password")]
+        public IActionResult ResetPassword([FromForm] string usernameOrEmail, [FromForm] string verificationCode, [FromForm] string newPassword)
+        {
+            // Kiểm tra người dùng và mã xác minh
+            var user = _userService.GetUserByUsernameOrEmail(usernameOrEmail);
+            if (user == null)
+            {
+                return NotFound(new { message = "Không tìm thấy tài khoản với tên người dùng hoặc email này." });
+            }
+
+            // Kiểm tra mã xác minh
+            var storedVerificationCode = _userService.GetPasswordResetCode(user.IdUser);
+            if (storedVerificationCode != verificationCode)
+            {
+                return BadRequest(new { message = "Mã xác minh không hợp lệ." });
+            }
+
+            // Cập nhật mật khẩu cho người dùng
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            user.UpdatedAt = DateTime.UtcNow;
+            _userService.ChangePassword(user);
+
+            return Ok(new { message = "Mật khẩu của bạn đã được thay đổi thành công." });
+        }
+
+
     }
 }
