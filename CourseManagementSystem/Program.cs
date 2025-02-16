@@ -25,11 +25,14 @@ namespace CourseManagementSystem
             builder.Services.AddHttpClient();
             // Add services to the container.
             builder.Services.AddScoped<IUserService, UserService>();
-            // Đăng ký DbContext để kết nối với cơ sở dữ liệu
+
+            //Đăng ký DbContext để kết nối với cơ sở dữ liệu
             builder.Services.AddDbContext<CourseManagementContext>(options =>
             {
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
             });
+
+
             var configuration = builder.Configuration;
 
 
@@ -114,7 +117,7 @@ namespace CourseManagementSystem
 #if DEBUG
                 x.RoutePrefix = "swagger"; // For localhost
 #else
-                                x.RoutePrefix = string.Empty; //  For azure
+                x.RoutePrefix = string.Empty; //  For azure
 #endif
             }
             );
