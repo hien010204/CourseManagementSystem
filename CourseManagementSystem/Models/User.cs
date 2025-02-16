@@ -19,11 +19,15 @@ public partial class User
 
     public string Role { get; set; } = null!;
 
+    public string Status { get; set; } = null!;
+
     public DateTime? CreatedAt { get; set; }
 
     public DateTime? UpdatedAt { get; set; }
 
-    public string Status { get; set; } = null!;
+    public string? PasswordResetCode { get; set; }
+
+    public DateTime? PasswordResetCodeExpiresAt { get; set; }
 
     public virtual ICollection<Announcement> Announcements { get; set; } = new List<Announcement>();
 

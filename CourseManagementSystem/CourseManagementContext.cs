@@ -1,4 +1,6 @@
-﻿using CourseManagementSystem.Models;
+﻿using System;
+using System.Collections.Generic;
+using CourseManagementSystem.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace CourseManagementSystem;
@@ -30,13 +32,13 @@ public partial class CourseManagementContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Server=tcp:coursemanagementsystemdbserver.database.windows.net,1433;Initial Catalog=CourseManagement;Persist Security Info=False;User ID=bxhien;Password=Admin123!;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;");
+        => optionsBuilder.UseSqlServer("Server=tcp:coursemanagementsystemdbserver.database.windows.net,1433;Database=CourseManagement;UID=bxhien;PWD=Admin123!;TrustServerCertificate=True");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Announcement>(entity =>
         {
-            entity.HasKey(e => e.AnnouncementId).HasName("PK__Announce__9DE4455428D1E501");
+            entity.HasKey(e => e.AnnouncementId).HasName("PK__Announce__9DE445545D71F80C");
 
             entity.Property(e => e.AnnouncementId).HasColumnName("AnnouncementID");
             entity.Property(e => e.Content).HasColumnType("text");
@@ -61,7 +63,7 @@ public partial class CourseManagementContext : DbContext
 
         modelBuilder.Entity<Assignment>(entity =>
         {
-            entity.HasKey(e => e.AssignmentId).HasName("PK__Assignme__32499E571FBD90D3");
+            entity.HasKey(e => e.AssignmentId).HasName("PK__Assignme__32499E57E6E1025B");
 
             entity.Property(e => e.AssignmentId).HasColumnName("AssignmentID");
             entity.Property(e => e.CourseId).HasColumnName("CourseID");
@@ -81,7 +83,7 @@ public partial class CourseManagementContext : DbContext
 
         modelBuilder.Entity<AssignmentSubmission>(entity =>
         {
-            entity.HasKey(e => e.SubmissionId).HasName("PK__Assignme__449EE105B0E429D5");
+            entity.HasKey(e => e.SubmissionId).HasName("PK__Assignme__449EE105033038EC");
 
             entity.ToTable("Assignment_Submissions");
 
@@ -107,7 +109,7 @@ public partial class CourseManagementContext : DbContext
 
         modelBuilder.Entity<Course>(entity =>
         {
-            entity.HasKey(e => e.CourseId).HasName("PK__Courses__C92D718752C4E27D");
+            entity.HasKey(e => e.CourseId).HasName("PK__Courses__C92D7187A996D2D8");
 
             entity.Property(e => e.CourseId).HasColumnName("CourseID");
             entity.Property(e => e.CourseName)
@@ -123,7 +125,7 @@ public partial class CourseManagementContext : DbContext
 
         modelBuilder.Entity<CourseEnrollment>(entity =>
         {
-            entity.HasKey(e => e.EnrollmentId).HasName("PK__Course_E__7F6877FB006C4D86");
+            entity.HasKey(e => e.EnrollmentId).HasName("PK__Course_E__7F6877FBCD08E760");
 
             entity.ToTable("Course_Enrollments");
 
@@ -150,7 +152,7 @@ public partial class CourseManagementContext : DbContext
 
         modelBuilder.Entity<Schedule>(entity =>
         {
-            entity.HasKey(e => e.ScheduleId).HasName("PK__Schedule__9C8A5B69C82D5764");
+            entity.HasKey(e => e.ScheduleId).HasName("PK__Schedule__9C8A5B69CA6AD470");
 
             entity.Property(e => e.ScheduleId).HasColumnName("ScheduleID");
             entity.Property(e => e.CourseId).HasColumnName("CourseID");
@@ -172,11 +174,11 @@ public partial class CourseManagementContext : DbContext
 
         modelBuilder.Entity<User>(entity =>
         {
-            entity.HasKey(e => e.IdUser).HasName("PK__Users__1788CCAC08DBC6BD");
+            entity.HasKey(e => e.IdUser).HasName("PK__Users__1788CCACA8C9F73C");
 
-            entity.HasIndex(e => e.UserName, "UQ__Users__536C85E4561DC5BA").IsUnique();
+            entity.HasIndex(e => e.UserName, "UQ__Users__536C85E436C7C6EA").IsUnique();
 
-            entity.HasIndex(e => e.Email, "UQ__Users__A9D10534423D3C0E").IsUnique();
+            entity.HasIndex(e => e.Email, "UQ__Users__A9D10534C55EC91B").IsUnique();
 
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(getdate())")
@@ -190,6 +192,10 @@ public partial class CourseManagementContext : DbContext
             entity.Property(e => e.PasswordHash)
                 .HasMaxLength(255)
                 .IsUnicode(false);
+            entity.Property(e => e.PasswordResetCode)
+                .HasMaxLength(255)
+                .IsUnicode(false);
+            entity.Property(e => e.PasswordResetCodeExpiresAt).HasColumnType("datetime");
             entity.Property(e => e.PhoneNumber)
                 .HasMaxLength(15)
                 .IsUnicode(false);
