@@ -20,7 +20,7 @@ namespace CourseManagementSystem.Controllers
             _userService = userService;
         }
 
-        // API tạo khóa học (Admin và Teacher)
+        // API to create a course (Admin and Teacher)
         [Authorize(Roles = "Admin,Teacher")]
         [HttpPost("create")]
         public IActionResult CreateCourse(
@@ -29,30 +29,28 @@ namespace CourseManagementSystem.Controllers
             [FromForm] DateTime startDate,
             [FromForm] DateTime endDate)
         {
-            // Lấy ID của người dùng hiện tại từ JWT (thay "IdUser" thành đúng tên claim bạn đã sử dụng khi tạo token)
             var currentUserIdClaim = User.FindFirst("IdUser");
 
             if (currentUserIdClaim == null)
             {
-                return Unauthorized(new { message = "Không tìm thấy thông tin người dùng trong token." });
+                return Unauthorized(new { message = "User information not found in token." });
             }
 
             var currentUserId = int.Parse(currentUserIdClaim.Value);
 
-            // Kiểm tra quyền
+            // Check permissions
             var currentUser = _userService.GetUserById(currentUserId);
             if (currentUser == null || (currentUser.Role != "Admin" && currentUser.Role != "Teacher"))
             {
                 return Forbid();
             }
 
-            // Chuyển đổi từ DateTime sang DateOnly
             var startDateOnly = DateOnly.FromDateTime(startDate.Date);
             var endDateOnly = DateOnly.FromDateTime(endDate.Date);
 
-            // Tạo khóa học mới
             var newCourse = new Course
             {
+
                 CourseName = courseName,
                 Description = description,
                 StartDate = startDateOnly,
@@ -63,8 +61,9 @@ namespace CourseManagementSystem.Controllers
             var createdCourse = _courseService.AddCourse(newCourse);
             return Ok(new
             {
-                message = "Tạo khóa học thành công!",
-                course = createdCourse.CourseName,
+                message = "Course created successfully!",
+
+                courseName = createdCourse.CourseName,
                 startDate = createdCourse.StartDate,
                 endDate = createdCourse.EndDate,
                 createdBy = createdCourse.CreatedBy
@@ -80,31 +79,28 @@ namespace CourseManagementSystem.Controllers
             [FromForm] DateTime startDate,
             [FromForm] DateTime endDate)
         {
-            // Lấy ID của người dùng hiện tại từ JWT (thay "IdUser" thành đúng tên claim bạn đã sử dụng khi tạo token)
             var currentUserIdClaim = User.FindFirst("IdUser");
 
             if (currentUserIdClaim == null)
             {
-                return Unauthorized(new { message = "Không tìm thấy thông tin người dùng trong token." });
+                return Unauthorized(new { message = "User information not found in token." });
             }
 
             var currentUserId = int.Parse(currentUserIdClaim.Value);
 
-            // Kiểm tra quyền
+            // Check permissions
             var currentUser = _userService.GetUserById(currentUserId);
             if (currentUser == null || (currentUser.Role != "Admin" && currentUser.Role != "Teacher"))
             {
                 return Forbid();
             }
 
-            // Tìm khóa học cần chỉnh sửa
             var courseToEdit = _courseService.GetCourseById(courseId);
             if (courseToEdit == null)
             {
-                return NotFound(new { message = "Khóa học không tồn tại." });
+                return NotFound(new { message = "Course does not exist." });
             }
 
-            // Chỉnh sửa thông tin khóa học
             courseToEdit.CourseName = courseName;
             courseToEdit.Description = description;
             courseToEdit.StartDate = DateOnly.FromDateTime(startDate.Date);
@@ -114,7 +110,7 @@ namespace CourseManagementSystem.Controllers
 
             return Ok(new
             {
-                message = "Chỉnh sửa khóa học thành công!",
+                message = "Course edited successfully!",
                 course = updatedCourse.CourseName,
                 startDate = updatedCourse.StartDate,
                 endDate = updatedCourse.EndDate
@@ -125,15 +121,15 @@ namespace CourseManagementSystem.Controllers
         [HttpGet("information/{courseId}")]
         public IActionResult GetCourseById([FromRoute] int courseId)
         {
-            // Lấy thông tin khóa học từ dịch vụ
             var course = _courseService.GetCourseById(courseId);
             if (course == null)
             {
-                return NotFound(new { message = "Khóa học không tồn tại." });
+                return NotFound(new { message = "Course does not exist." });
             }
 
             return Ok(new
             {
+                course.CourseId,
                 course.CourseName,
                 course.Description,
                 startDate = course.StartDate,
@@ -149,7 +145,7 @@ namespace CourseManagementSystem.Controllers
             var courses = _courseService.GetAllCourses();
             if (courses == null || !courses.Any())
             {
-                return NotFound(new { message = "Không có khóa học nào." });
+                return NotFound(new { message = "No courses available." });
             }
 
             var courseList = courses.Select(course => new
@@ -165,26 +161,24 @@ namespace CourseManagementSystem.Controllers
 
         }
 
-        // API xóa khóa học (Admin có thể xóa khóa học)
+        // API to delete a course (only Admin can delete)
         [Authorize(Roles = "Admin")]
         [HttpDelete("delete/{courseId}")]
         public IActionResult DeleteCourse([FromRoute] int courseId)
         {
-            // Kiểm tra sự tồn tại của khóa học
             var courseToDelete = _courseService.GetCourseById(courseId);
             if (courseToDelete == null)
             {
-                return NotFound(new { message = "Khóa học không tồn tại." });
+                return NotFound(new { message = "Course does not exist." });
             }
 
-            // Xóa khóa học
             var isDeleted = _courseService.DeleteCourse(courseId);
             if (!isDeleted)
             {
-                return BadRequest(new { message = "Xóa khóa học không thành công." });
+                return BadRequest(new { message = "Course deletion failed." });
             }
 
-            return Ok(new { message = "Xóa khóa học thành công!" });
+            return Ok(new { message = "Course deleted successfully!" });
         }
 
 
@@ -192,21 +186,19 @@ namespace CourseManagementSystem.Controllers
         [HttpGet("my-courses")]
         public IActionResult GetUserCourses()
         {
-            // Lấy ID người dùng từ JWT
             var currentUserIdClaim = User.FindFirst("IdUser");
             if (currentUserIdClaim == null)
             {
-                return Unauthorized(new { message = "Không tìm thấy thông tin người dùng trong token." });
+                return Unauthorized(new { message = "User information not found in token." });
             }
 
             var currentUserId = int.Parse(currentUserIdClaim.Value);
 
-            // Lấy các khóa học mà người dùng đã đăng ký từ service
             var courseList = _courseService.GetUserCourses(currentUserId);
 
             if (courseList == null || !courseList.Any())
             {
-                return NotFound(new { message = "Người dùng chưa đăng ký khóa học nào." });
+                return NotFound(new { message = "User has not enrolled in any course." });
             }
 
             return Ok(courseList);
@@ -218,35 +210,32 @@ namespace CourseManagementSystem.Controllers
         [HttpPost("enroll/{courseId}")]
         public IActionResult EnrollInCourse([FromRoute] int courseId)
         {
-            // Lấy ID người dùng từ JWT
             var currentUserIdClaim = User.FindFirst("IdUser");
             if (currentUserIdClaim == null)
             {
-                return Unauthorized(new { message = "Không tìm thấy thông tin người dùng trong token." });
+                return Unauthorized(new { message = "User information not found in token." });
             }
 
             var currentUserId = int.Parse(currentUserIdClaim.Value);
 
-            // Gọi phương thức EnrollInCourse trong CourseService để đăng ký
             var isEnrolled = _courseService.EnrollInCourse(courseId, currentUserId);
 
             if (!isEnrolled)
             {
-                return BadRequest(new { message = "Không thể đăng ký khóa học (khóa học không tồn tại hoặc bạn đã đăng ký rồi)." });
+                return BadRequest(new { message = "Unable to enroll in course (course does not exist or you have already enrolled)." });
             }
 
-            return Ok(new { message = "Đăng ký khóa học thành công!" });
+            return Ok(new { message = "Course enrollment successful!" });
         }
 
         [Authorize(Roles = "Admin,Teacher")]
         [HttpPost("confirm-enrollment/{courseId}/{studentId}")]
         public IActionResult ConfirmEnrollment(int courseId, int studentId)
         {
-            // Kiểm tra quyền của người dùng (Admin hoặc Teacher)
             var currentUserIdClaim = User.FindFirst("IdUser");
             if (currentUserIdClaim == null)
             {
-                return Unauthorized(new { message = "Không tìm thấy thông tin người dùng trong token." });
+                return Unauthorized(new { message = "User information not found in token." });
             }
 
             var currentUserId = int.Parse(currentUserIdClaim.Value);
@@ -254,20 +243,17 @@ namespace CourseManagementSystem.Controllers
 
             if (currentUser == null || (currentUser.Role != "Admin" && currentUser.Role != "Teacher"))
             {
-                return Forbid(); // Nếu người dùng không phải Admin hoặc Teacher
+                return Forbid(); // If the user is not Admin or Teacher
             }
 
-            // Gọi service để xác nhận đăng ký
             var result = _courseService.ConfirmEnrollment(courseId, studentId);
 
             if (!result)
             {
-                return NotFound(new { message = "Không tìm thấy đăng ký nào với trạng thái Pending." });
+                return NotFound(new { message = "No enrollment found with Pending status." });
             }
 
-            return Ok(new { message = "Đăng ký học sinh vào khóa học đã được xác nhận." });
+            return Ok(new { message = "Student enrollment confirmed successfully." });
         }
-
-
     }
 }

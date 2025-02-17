@@ -52,30 +52,26 @@ namespace CourseManagementSystem.Services.Courses
 
         public List<Course> GetCoursesByUserId(int userId)
         {
-            // Lấy danh sách các Enrollment của người dùng từ bảng Course_Enrollments
-            var enrollments = _context.CourseEnrollments
-                                       .Where(e => e.StudentId == userId)
-                                       .Select(e => e.CourseId)
-                                       .ToList();
-
-            // Dùng danh sách CourseID để truy vấn thông tin khóa học
-            var courses = _context.Courses.Select(c => new Course
-            {
-                CourseName = c.CourseName,
-                Description = c.Description,
-                StartDate = c.StartDate,
-                EndDate = c.EndDate
-            })
-                                  .Where(c => enrollments.Contains(c.CourseId))
-                                  .ToList();
-
+            var courses = (from e in _context.CourseEnrollments
+                           join c in _context.Courses on e.CourseId equals c.CourseId
+                           where e.StudentId == userId
+                           select new Course
+                           {
+                               CourseId = c.CourseId,
+                               CourseName = c.CourseName,
+                               Description = c.Description,
+                               StartDate = c.StartDate,
+                               EndDate = c.EndDate
+                           }).ToList();
             return courses;
         }
+
         public List<Course> GetAllCourses()
         {
             // Lấy danh sách tất cả khóa học từ cơ sở dữ liệu
             return _context.Courses.Select(c => new Course
             {
+                CourseId = c.CourseId,
                 CourseName = c.CourseName,
                 Description = c.Description,
                 StartDate = c.StartDate,
@@ -176,6 +172,7 @@ namespace CourseManagementSystem.Services.Courses
             // Lấy thông tin khóa học và trạng thái đăng ký
             var courseList = userCourses.Select(course => new CourseDto
             {
+                CourseId = course.CourseId,
                 CourseName = course.CourseName,
                 Description = course.Description,
                 StartDate = course.StartDate,

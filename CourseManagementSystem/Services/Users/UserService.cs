@@ -39,10 +39,6 @@ namespace CourseManagementSystem.Services.Users
             return user;  // Trả về user nếu thông tin hợp lệ
         }
 
-        public bool CheckEmailExists(string email)
-        {
-            return _context.Users.Any(u => u.Email == email);
-        }
 
         public bool CheckUsernameExists(string username)
         {
@@ -74,9 +70,11 @@ namespace CourseManagementSystem.Services.Users
                 {
                     IdUser = u.IdUser,
                     UserName = u.UserName,
+                    FullName = u.FullName,
                     Email = u.Email,
                     Status = u.Status,
                     Role = u.Role,
+                    PhoneNumber = u.PhoneNumber,
                     PasswordHash = u.PasswordHash,
                     CreatedAt = u.CreatedAt
                 }).FirstOrDefault();
@@ -142,9 +140,18 @@ namespace CourseManagementSystem.Services.Users
             {
                 return null;
             }
+            if (user.Role == "Admin")
+            {
+                _context.Users.Add(user);
+                _context.SaveChanges();
+
+                return user;  // Trả về thông tin người dùng sau khi đăng ký thành công
+            }
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.PasswordHash);
 
             // Mã hóa mật khẩu trước khi lưu
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.PasswordHash);
+
 
             // Thêm user mới vào database
             _context.Users.Add(user);
@@ -193,5 +200,9 @@ namespace CourseManagementSystem.Services.Users
             return user.PasswordResetCode;
         }
 
+        public bool CheckEmailExists(string email)
+        {
+            return _context.Users.Any(u => u.Email == email);
+        }
     }
 }
