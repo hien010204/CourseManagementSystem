@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+
 namespace CourseManagementSystem.Controllers
 {
     [Route("[controller]")]
@@ -25,33 +26,31 @@ namespace CourseManagementSystem.Controllers
         [HttpPost("login")]
         public IActionResult Login([FromForm] string username, [FromForm] string password)
         {
-            // Kiểm tra thông tin đăng nhập
+            // Check login information
             var user = _userService.Authenticate(username, password);
 
             if (user == null)
-                return Unauthorized(new { message = "Tên đăng nhập hoặc mật khẩu không chính xác." });
+                return Unauthorized(new { message = "Incorrect username or password." });
 
             if (user.Status == "Inactive")
             {
-                return StatusCode(403, new { message = "Tài khoản của bạn đã bị ban." }); // Trả về lỗi 403 với thông báo
+                return StatusCode(403, new { message = "Your account has been banned." }); // Return 403 with a message
             }
 
-            // Tạo JWT token
+            // Create JWT token
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(_config["Jwt:Key"]);
 
-            // Định nghĩa các claims cho token
-
-
+            // Define claims for the token
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new Claim[]
                 {
-                    new Claim("IdUser", user.IdUser.ToString()), // Lưu UserId từ bảng User
-                    new Claim(ClaimTypes.Name, user.UserName),   // Lưu Username từ bảng User
-                    new Claim(ClaimTypes.Role, user.Role)        // Lưu vai trò (role) của người dùng
+                    new Claim("IdUser", user.IdUser.ToString()), // Save UserId from the User table
+                    new Claim(ClaimTypes.Name, user.UserName),   // Save Username from the User table
+                    new Claim(ClaimTypes.Role, user.Role)        // Save the user's role
                 }),
-                Expires = DateTime.UtcNow.AddHours(1), // Token có hiệu lực trong 1 giờ
+                Expires = DateTime.UtcNow.AddHours(1), // Token is valid for 1 hour
                 Issuer = _config["Jwt:Issuer"],
                 Audience = _config["Jwt:Audience"],
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
@@ -60,12 +59,12 @@ namespace CourseManagementSystem.Controllers
             var token = tokenHandler.CreateToken(tokenDescriptor);
             var tokenString = tokenHandler.WriteToken(token);
 
-            // Trả về thông tin đăng nhập kèm token và type (role)
+            // Return login information with token and type (role)
             return Ok(new
             {
                 IdUser = user.IdUser,
                 UserName = user.UserName,
-                Role = user.Role,  // Thêm type vào thông tin trả về
+                Role = user.Role,  // Include type in the return info
                 Status = user.Status,
                 Token = tokenString,
                 Expiration = tokenDescriptor.Expires
@@ -75,63 +74,61 @@ namespace CourseManagementSystem.Controllers
         [HttpPost("register")]
         public IActionResult Register([FromForm] string FullName, [FromForm] string username, [FromForm] string email, [FromForm] string password, [FromForm] string phonenumber)
         {
-            // Kiểm tra xem username đã tồn tại chưa
+            // Check if username already exists
             if (_userService.CheckUsernameExists(username))
             {
-                return BadRequest(new { message = "Tên đăng nhập đã tồn tại." });
+                return BadRequest(new { message = "Username already exists." });
             }
 
-            //Kiểm tra xem email đã tồn tại chưa
-            if (_userService.CheckEmailExists(email))
+            // Check if email already exists
+            if (_userService.CheckUsernameExists(email))
             {
-                return BadRequest(new { message = "Email đã tồn tại." });
+                return BadRequest(new { message = "Email already exists." });
             }
 
-            // Tạo user mới với mật khẩu đã mã hóa
+            // Create a new user with hashed password
             var newUser = new User
             {
                 UserName = username,
-                PasswordHash = password, // Mã hóa mật khẩu
+                PasswordHash = password, // Hash password
                 FullName = FullName,
                 Email = email,
                 PhoneNumber = phonenumber,
                 CreatedAt = DateTime.UtcNow,
-                Role = "Student"  // Loại người dùng mặc định
+                Role = "Student"  // Default user role
             };
 
             var createdUser = _userService.Register(newUser);
 
             if (createdUser == null)
             {
-                return BadRequest(new { message = "Đăng ký không thành công." });
+                return BadRequest(new { message = "Registration failed." });
             }
 
-            // Gửi email xác nhận đăng ký thành công
+            // Send email confirmation for successful registration
             try
             {
-                // Tạo dịch vụ email và cấu hình email cần gửi
+                // Create email service and configure email to be sent
                 var emailService = new EmailService(_config);
-                var subject = "Chào mừng bạn đã đăng ký thành công tại Cousera";
-                var body = $"Xin chào {newUser.UserName},\n\nCảm ơn bạn đã đăng ký tài khoản tại Cousera.\n\nChúng tôi hy vọng bạn sẽ có những trải nghiệm tuyệt vời khi sử dụng dịch vụ của chúng tôi.\n\nTrân trọng,\nĐội ngũ Cousera";
+                var subject = "Welcome to Cousera - Successful Registration";
+                var body = $"Hello {newUser.UserName},\n\nThank you for registering at Cousera.\n\nWe hope you have a great experience using our service.\n\nBest regards,\nCousera Team";
 
-                // Gửi email xác nhận
+                // Send confirmation email
                 emailService.SendEmail(newUser.Email, subject, body);
             }
             catch (SmtpCommandException smtpEx)
             {
-                // Nếu lỗi SMTP (ví dụ: không thể kết nối tới server hoặc xác thực thất bại)
-                // Thông báo lỗi rõ ràng hơn
-                return BadRequest(new { message = "Lỗi khi kết nối với dịch vụ gửi email. Vui lòng thử lại sau." });
+                // If there is an SMTP error (e.g., connection failure or authentication error)
+                // Provide clearer error message
+                return BadRequest(new { message = "Error connecting to the email service. Please try again later." });
             }
             catch (Exception ex)
             {
-                // Xử lý lỗi chung (chưa xác định rõ nguyên nhân)
+                // Handle general errors (undetermined cause)
                 Console.WriteLine($"General Error: {ex.Message}");
-                Console.WriteLine(ex.StackTrace);  // Cung cấp thông tin chi tiết về lỗi
-                return BadRequest(new { message = "Gửi email xác nhận thất bại.", errorDetails = ex.Message });
+                Console.WriteLine(ex.StackTrace);  // Provide detailed error information
+                return BadRequest(new { message = "Failed to send confirmation email.", errorDetails = ex.Message });
             }
-
-
 
             return Ok(new
             {
@@ -139,19 +136,15 @@ namespace CourseManagementSystem.Controllers
                 Username = createdUser.UserName,
                 Email = createdUser.Email,
                 PhoneNumber = createdUser.PhoneNumber,
-
             });
-
         }
 
         [HttpPost("logout")]
         public IActionResult Logout()
         {
             _userService.Logout();
-            return Ok(new { message = "Đã đăng xuất thành công" });
+            return Ok(new { message = "Successfully logged out." });
         }
-
-
 
         [HttpPut("change-password/{userId}")]
         public IActionResult ChangePassword(int userId, [FromForm] string passwordlast, [FromForm] string password)
@@ -159,88 +152,84 @@ namespace CourseManagementSystem.Controllers
             var user = _userService.GetUserById(userId);
             if (user == null)
             {
-                return NotFound(new { message = "Không tìm thấy người dùng." });
+                return NotFound(new { message = "User not found." });
             }
             if (passwordlast == password && passwordlast != user.PasswordHash)
             {
-                return BadRequest(new { message = "Mật khẩu mới không được trùng với mật khẩu cũ hoặc sai password" });
+                return BadRequest(new { message = "New password cannot be the same as the old one or incorrect password." });
             }
-            // Cập nhật trạng thái của người dùng
+            // Update user's password
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
             user.UpdatedAt = DateTime.UtcNow;
             _userService.ChangePassword(user);
 
-            return Ok(new { message = "Password người dùng đã được cập nhật." });
-
+            return Ok(new { message = "User's password has been updated." });
         }
-
 
         [HttpPost("forgot-password")]
         public IActionResult ForgotPassword([FromForm] string usernameOrEmail)
         {
-            // Kiểm tra nếu người dùng có email hoặc tên người dùng đã đăng ký không
+            // Check if the user has registered with the provided username or email
             var user = _userService.GetUserByUsernameOrEmail(usernameOrEmail);
 
             if (user == null)
             {
-                return NotFound(new { message = "Không tìm thấy tài khoản với tên người dùng hoặc email này." });
+                return NotFound(new { message = "No account found with this username or email." });
             }
 
-            // Tạo mã xác minh hoặc liên kết thay đổi mật khẩu
-            var verificationCode = Guid.NewGuid().ToString(); // Tạo một mã xác minh ngẫu nhiên
+            // Create a verification code or reset password link
+            var verificationCode = Guid.NewGuid().ToString(); // Generate a random verification code
 
-            // Lưu mã xác minh vào cơ sở dữ liệu hoặc gửi qua email
-            // Giả sử chúng ta gửi mã qua email
+            // Save verification code to database or send via email
+            // Assume we send the code via email
             try
             {
-                // Tạo dịch vụ email và cấu hình email cần gửi
+                // Create email service and configure email to be sent
                 var emailService = new EmailService(_config);
-                var subject = "Yêu cầu thay đổi mật khẩu";
-                var body = $"Xin chào {user.UserName},\n\nBạn đã yêu cầu thay đổi mật khẩu.\n\nSử dụng mã xác minh sau để tạo mật khẩu mới: {verificationCode}\n\nNếu bạn không yêu cầu thay đổi mật khẩu, vui lòng bỏ qua email này.\n\nTrân trọng,\nĐội ngũ hỗ trợ";
+                var subject = "Password Change Request";
+                var body = $"Hello {user.UserName},\n\nYou requested to change your password.\n\nUse the following verification code to create a new password: {verificationCode}\n\nIf you did not request a password change, please ignore this email.\n\nBest regards,\nSupport Team";
 
-                // Gửi email xác nhận
+                // Send verification email
                 emailService.SendEmail(user.Email, subject, body);
 
-                // Lưu mã xác minh vào cơ sở dữ liệu để đối chiếu khi người dùng cung cấp mã này
+                // Save verification code to database for later comparison when user provides it
                 _userService.SavePasswordResetCode(user.IdUser, verificationCode);
             }
             catch (SmtpCommandException smtpEx)
             {
-                return BadRequest(new { message = "Lỗi khi kết nối với dịch vụ gửi email. Vui lòng thử lại sau." });
+                return BadRequest(new { message = "Error connecting to the email service. Please try again later." });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = "Gửi email thất bại.", errorDetails = ex.Message });
+                return BadRequest(new { message = "Failed to send email.", errorDetails = ex.Message });
             }
 
-            return Ok(new { message = "Mã xác minh đã được gửi đến email của bạn. Vui lòng kiểm tra email để thay đổi mật khẩu." });
+            return Ok(new { message = "The verification code has been sent to your email. Please check your email to change the password." });
         }
 
         [HttpPut("reset-password")]
         public IActionResult ResetPassword([FromForm] string usernameOrEmail, [FromForm] string verificationCode, [FromForm] string newPassword)
         {
-            // Kiểm tra người dùng và mã xác minh
+            // Check the user and verification code
             var user = _userService.GetUserByUsernameOrEmail(usernameOrEmail);
             if (user == null)
             {
-                return NotFound(new { message = "Không tìm thấy tài khoản với tên người dùng hoặc email này." });
+                return NotFound(new { message = "No account found with this username or email." });
             }
 
-            // Kiểm tra mã xác minh
+            // Check verification code
             var storedVerificationCode = _userService.GetPasswordResetCode(user.IdUser);
             if (storedVerificationCode != verificationCode)
             {
-                return BadRequest(new { message = "Mã xác minh không hợp lệ." });
+                return BadRequest(new { message = "Invalid verification code." });
             }
 
-            // Cập nhật mật khẩu cho người dùng
+            // Update user's password
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
             user.UpdatedAt = DateTime.UtcNow;
             _userService.ChangePassword(user);
 
-            return Ok(new { message = "Mật khẩu của bạn đã được thay đổi thành công." });
+            return Ok(new { message = "Your password has been successfully changed." });
         }
-
-
     }
 }

@@ -17,7 +17,6 @@ namespace CourseManagementSystem
         {
             var builder = WebApplication.CreateBuilder(args);
 
-
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
@@ -26,15 +25,13 @@ namespace CourseManagementSystem
             // Add services to the container.
             builder.Services.AddScoped<IUserService, UserService>();
 
-            //Đăng ký DbContext để kết nối với cơ sở dữ liệu
+            // Đăng ký DbContext để kết nối với cơ sở dữ liệu
             builder.Services.AddDbContext<CourseManagementContext>(options =>
             {
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
             });
 
-
             var configuration = builder.Configuration;
-
 
             // Configure JWT Authentication
             var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]);
@@ -56,6 +53,7 @@ namespace CourseManagementSystem
                     ValidateLifetime = true
                 };
             });
+
             builder.Services.AddSingleton<EmailService>(); // Đăng ký EmailService như một singleton
             builder.Services.AddControllers();
 
@@ -98,46 +96,53 @@ namespace CourseManagementSystem
                 });
             });
 
-
-
             builder.Services.AddScoped<ICourseService, CourseService>();
-            var app = builder.Build();
-            // Configure the HTTP request pipeline.
-            //if (app.Environment.IsDevelopment())
+
+            // Cấu hình CORS cho phép mọi domain
+            //builder.Services.AddCors(options =>
             //{
-            //    app.UseSwagger();
-            //    app.UseSwaggerUI();
-            //}
+            //    options.AddPolicy("AllowAllOrigins",
+            //        policy =>
+            //        {
+            //            policy.AllowAnyOrigin()  // Cho phép mọi domain
+            //                .AllowAnyMethod()    // Cho phép mọi phương thức HTTP
+            //                .AllowAnyHeader();   // Cho phép mọi header
+            //        });
+            //});
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowFrontend",
+                    builder => builder.WithOrigins("http://localhost:5173") // Không dùng '*'
+                        .AllowCredentials()
+                        .AllowAnyHeader()
+                        .AllowAnyMethod());
+            });
+            var app = builder.Build();
+
+            // Configure the HTTP request pipeline.
             app.UseSwagger();
             app.UseSwaggerUI(x =>
             {
-
                 x.SwaggerEndpoint("/swagger/v1/swagger.json", "Web API V1");
 
 #if DEBUG
                 x.RoutePrefix = "swagger"; // For localhost
 #else
-                x.RoutePrefix = string.Empty; //  For azure
+                x.RoutePrefix = string.Empty; // For production
 #endif
-            }
-            );
+            });
 
             app.UseHttpsRedirection();
-
             app.UseAuthentication();
-
             app.UseAuthorization();
-
-            app.UseCors(builder => builder
-                .AllowAnyOrigin()
-                .AllowAnyMethod()
-                .AllowAnyHeader());
+            app.UseCors("AllowFrontend"); // Áp dụng chính sách CORS
 
             app.MapControllers();
 
             app.Run();
         }
     }
-
-
 }
+
+
