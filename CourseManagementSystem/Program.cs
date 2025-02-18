@@ -2,6 +2,7 @@
 using CourseManagementSystem.Services.Courses;
 using CourseManagementSystem.Services.Email;
 using CourseManagementSystem.Services.Models;
+using CourseManagementSystem.Services.Profile;
 using CourseManagementSystem.Services.Users;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -95,8 +96,10 @@ namespace CourseManagementSystem
                     }
                 });
             });
-
+            // Đăng ký các dịch vụ trong DI container
             builder.Services.AddScoped<ICourseService, CourseService>();
+
+            builder.Services.AddScoped<IProfileService, ProfileService>();
 
             // Cấu hình CORS cho phép mọi domain
             //builder.Services.AddCors(options =>

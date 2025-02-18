@@ -146,25 +146,7 @@ namespace CourseManagementSystem.Controllers
             return Ok(new { message = "Successfully logged out." });
         }
 
-        [HttpPut("change-password/{userId}")]
-        public IActionResult ChangePassword(int userId, [FromForm] string passwordlast, [FromForm] string password)
-        {
-            var user = _userService.GetUserById(userId);
-            if (user == null)
-            {
-                return NotFound(new { message = "User not found." });
-            }
-            if (passwordlast == password && passwordlast != user.PasswordHash)
-            {
-                return BadRequest(new { message = "New password cannot be the same as the old one or incorrect password." });
-            }
-            // Update user's password
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
-            user.UpdatedAt = DateTime.UtcNow;
-            _userService.ChangePassword(user);
 
-            return Ok(new { message = "User's password has been updated." });
-        }
 
         [HttpPost("forgot-password")]
         public IActionResult ForgotPassword([FromForm] string usernameOrEmail)
