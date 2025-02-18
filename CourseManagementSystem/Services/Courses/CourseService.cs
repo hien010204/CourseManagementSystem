@@ -1,6 +1,7 @@
 ﻿using CourseManagementSystem.DTO;
 using CourseManagementSystem.Models;
 using CourseManagementSystem.Services.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace CourseManagementSystem.Services.Courses
 {
@@ -155,7 +156,7 @@ namespace CourseManagementSystem.Services.Courses
 
             return true; // Đăng ký thành công
         }
-
+        // dành cho Student xem thử đã tham gia và đăng kí khoá học nào
         public List<CourseDto> GetUserCourses(int userId)
         {
             // Lấy các khóa học mà người dùng đã đăng ký
@@ -186,6 +187,7 @@ namespace CourseManagementSystem.Services.Courses
             return courseList;
         }
 
+        // Xác nhận đăng ký học viên vào khóa học --> dành cho teacher và admin
         public bool ConfirmEnrollment(int courseId, int studentId)
         {
             // Kiểm tra xem khóa học và học sinh có tồn tại trong bảng CourseEnrollments không
@@ -203,5 +205,47 @@ namespace CourseManagementSystem.Services.Courses
 
             return true;
         }
+
+        // xem tất cả danh sách sinh viên tham gia khoá học bao gồm ( trạng thái đăng kí, được xác nhận và loại bỏ) --> dành cho teacher và admin
+        public List<StudentCourseInfoDto> GetStudentsAndCourses(string enrollmentStatus)
+        {
+            var query = from enrollment in _context.CourseEnrollments
+                        join user in _context.Users on enrollment.StudentId equals user.IdUser
+                        join course in _context.Courses on enrollment.CourseId equals course.CourseId
+                        where user.Role == "Student" && enrollment.EnrollmentStatus == enrollmentStatus  // Lọc theo trạng thái đăng ký truyền vào
+                        select new StudentCourseInfoDto
+                        {
+                            StudentId = user.IdUser,
+                            StudentName = user.FullName,
+                            Email = user.Email,
+                            CourseId = course.CourseId,
+                            CourseName = course.CourseName,
+                        };
+
+            return query.ToList();
+        }
+
+
+        //lấy danh sách sinh viên đã tham gia khoá học này
+        public List<StudentCourseInfoDto> GetConfirmedStudentsInCourse(int courseId)
+        {
+            var query = from enrollment in _context.CourseEnrollments
+                        join user in _context.Users on enrollment.StudentId equals user.IdUser
+                        join course in _context.Courses on enrollment.CourseId equals course.CourseId
+                        where enrollment.EnrollmentStatus == "Confirmed"  // Lọc sinh viên đã xác nhận tham gia
+                              && course.CourseId == courseId  // Lọc theo khóa học cụ thể
+                        select new StudentCourseInfoDto
+                        {
+                            StudentId = user.IdUser,
+                            StudentName = user.FullName,
+                            Email = user.Email,
+                            CourseId = course.CourseId,
+                            CourseName = course.CourseName,
+
+                        };
+
+            return query.ToList();
+        }
+
     }
 }

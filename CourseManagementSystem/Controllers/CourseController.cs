@@ -255,5 +255,42 @@ namespace CourseManagementSystem.Controllers
 
             return Ok(new { message = "Student enrollment confirmed successfully." });
         }
+
+        [Authorize(Roles = "Admin,Teacher")]
+        [HttpGet("students-courses")]
+        public IActionResult GetStudentsAndCourses([FromQuery] string enrollmentStatus)
+        {
+            // Kiểm tra nếu không có giá trị trạng thái đăng ký, thì mặc định sử dụng "Confirmed"
+            if (string.IsNullOrEmpty(enrollmentStatus))
+            {
+                enrollmentStatus = "Confirmed"; // Có thể thay đổi trạng thái mặc định nếu cần
+            }
+
+            var studentsAndCourses = _courseService.GetStudentsAndCourses(enrollmentStatus);
+
+            if (studentsAndCourses == null || !studentsAndCourses.Any())
+            {
+                return NotFound(new { message = $"There are no students enrolled with status {enrollmentStatus}." });
+            }
+
+            return Ok(studentsAndCourses);
+        }
+
+
+
+        [Authorize(Roles = "Admin,Teacher")]
+        [HttpGet("course/{courseId}/confirmed-students")]
+        public IActionResult GetConfirmedStudentsInCourse(int courseId)
+        {
+            var studentsInCourse = _courseService.GetConfirmedStudentsInCourse(courseId);
+
+            if (studentsInCourse == null || !studentsInCourse.Any())
+            {
+                return NotFound(new { message = "No confirmed students enrolled in this course." });
+            }
+
+            return Ok(studentsInCourse);
+        }
+
     }
 }
