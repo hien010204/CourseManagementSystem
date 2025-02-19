@@ -247,5 +247,18 @@ namespace CourseManagementSystem.Services.Courses
             return query.ToList();
         }
 
+        public List<Course> GetCourseByName(string courseName)
+        {
+            if (string.IsNullOrEmpty(courseName))
+            {
+                return null;
+            }
+            var result = _context.Courses.FirstOrDefault(c => c.CourseName.ToLower().Contains(courseName.ToLower()));
+            if (result == null)
+            {
+                return null;
+            }
+            return _context.Courses.Where(c => c.CourseName.ToLower().Contains(courseName.ToLower())).ToList();
+        }
     }
 }

@@ -17,5 +17,6 @@ namespace CourseManagementSystem.Services.Models
         public bool ConfirmEnrollment(int courseId, int studentId);
         public List<StudentCourseInfoDto> GetStudentsAndCourses(string enrollmentStatus);
         public List<StudentCourseInfoDto> GetConfirmedStudentsInCourse(int courseId);
+        public List<Course> GetCourseByName(string courseName);
     }
 }
