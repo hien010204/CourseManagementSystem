@@ -139,27 +139,6 @@ namespace CourseManagementSystem.Controllers
         }
 
 
-        [HttpGet("all-courses")]
-        public IActionResult GetAllCourses()
-        {
-            var courses = _courseService.GetAllCourses();
-            if (courses == null || !courses.Any())
-            {
-                return NotFound(new { message = "No courses available." });
-            }
-
-            var courseList = courses.Select(course => new
-            {
-                course.CourseId,
-                course.CourseName,
-                course.Description,
-                startDate = course.StartDate,
-                endDate = course.EndDate
-            }).ToList();
-
-            return Ok(courseList);
-
-        }
 
         // API to delete a course (only Admin can delete)
         [Authorize(Roles = "Admin")]
