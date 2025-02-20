@@ -1,7 +1,8 @@
-﻿using CourseManagementSystem.Models;
+﻿using System;
+using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 
-namespace CourseManagementSystem;
+namespace CourseManagementSystem.Models;
 
 public partial class CourseManagementContext : DbContext
 {
@@ -16,25 +17,27 @@ public partial class CourseManagementContext : DbContext
 
     public virtual DbSet<Announcement> Announcements { get; set; }
 
+    public virtual DbSet<Answer> Answers { get; set; }
+
     public virtual DbSet<Assignment> Assignments { get; set; }
 
     public virtual DbSet<AssignmentSubmission> AssignmentSubmissions { get; set; }
+
+    public virtual DbSet<Comment> Comments { get; set; }
 
     public virtual DbSet<Course> Courses { get; set; }
 
     public virtual DbSet<CourseEnrollment> CourseEnrollments { get; set; }
 
+    public virtual DbSet<Question> Questions { get; set; }
+
     public virtual DbSet<Schedule> Schedules { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
-    public DbSet<Question> Questions { get; set; }
-    public DbSet<Answer> Answers { get; set; }
-    public DbSet<Comment> Comments { get; set; }
-
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Server=tcp:coursemanagementsystemdbserver.database.windows.net,1433;Database=CourseManagement;UID=bxhien;PWD=Admin123!;TrustServerCertificate=True");
+        => optionsBuilder.UseSqlServer("Server=tcp:coursemanagementsystemdbserver.database.windows.net,1433;Database=CourseManagement;User Id=bxhien;Password=Admin123!;");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -61,6 +64,27 @@ public partial class CourseManagementContext : DbContext
                 .HasForeignKey(d => d.CreatedBy)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Announcements_Users");
+        });
+
+        modelBuilder.Entity<Answer>(entity =>
+        {
+            entity.HasKey(e => e.AnswerId).HasName("PK__Answers__D4825024C1EEC692");
+
+            entity.Property(e => e.AnswerId).HasColumnName("AnswerID");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.QuestionId).HasColumnName("QuestionID");
+            entity.Property(e => e.UserId).HasColumnName("UserID");
+
+            entity.HasOne(d => d.Question).WithMany(p => p.Answers)
+                .HasForeignKey(d => d.QuestionId)
+                .HasConstraintName("FK_Answers_Questions");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Answers)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Answers_Users");
         });
 
         modelBuilder.Entity<Assignment>(entity =>
@@ -109,6 +133,27 @@ public partial class CourseManagementContext : DbContext
                 .HasConstraintName("FK_Submissions_Users");
         });
 
+        modelBuilder.Entity<Comment>(entity =>
+        {
+            entity.HasKey(e => e.CommentId).HasName("PK__Comments__C3B4DFAA1C236F2F");
+
+            entity.Property(e => e.CommentId).HasColumnName("CommentID");
+            entity.Property(e => e.AnswerId).HasColumnName("AnswerID");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.UserId).HasColumnName("UserID");
+
+            entity.HasOne(d => d.Answer).WithMany(p => p.Comments)
+                .HasForeignKey(d => d.AnswerId)
+                .HasConstraintName("FK_Comments_Answers");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Comments)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Comments_Users");
+        });
+
         modelBuilder.Entity<Course>(entity =>
         {
             entity.HasKey(e => e.CourseId).HasName("PK__Courses__C92D7187A996D2D8");
@@ -150,6 +195,22 @@ public partial class CourseManagementContext : DbContext
                 .HasForeignKey(d => d.StudentId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Enrollments_Users");
+        });
+
+        modelBuilder.Entity<Question>(entity =>
+        {
+            entity.HasKey(e => e.QuestionId).HasName("PK__Question__0DC06F8CCB61456A");
+
+            entity.Property(e => e.QuestionId).HasColumnName("QuestionID");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.Title).HasMaxLength(255);
+            entity.Property(e => e.UserId).HasColumnName("UserID");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Questions)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("FK_Questions_Users");
         });
 
         modelBuilder.Entity<Schedule>(entity =>
@@ -212,57 +273,6 @@ public partial class CourseManagementContext : DbContext
             entity.Property(e => e.UserName)
                 .HasMaxLength(50)
                 .IsUnicode(false);
-        });
-        modelBuilder.Entity<Question>(entity =>
-        {
-            entity.HasKey(e => e.QuestionId);
-            entity.Property(e => e.Title).HasMaxLength(255).IsRequired();
-            entity.Property(e => e.Content).HasColumnType("text").IsRequired();
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())").HasColumnType("datetime");
-
-            entity.HasOne(d => d.User)
-                .WithMany(p => p.Questions)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.Cascade)
-                .HasConstraintName("FK_Questions_Users");
-        });
-
-        modelBuilder.Entity<Answer>(entity =>
-        {
-            entity.HasKey(e => e.AnswerId);
-            entity.Property(e => e.Content).HasColumnType("text").IsRequired();
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())").HasColumnType("datetime");
-
-            entity.HasOne(d => d.Question)
-                .WithMany(p => p.Answers)
-                .HasForeignKey(d => d.QuestionId)
-                .OnDelete(DeleteBehavior.Cascade)
-                .HasConstraintName("FK_Answers_Questions");
-
-            entity.HasOne(d => d.User)
-                .WithMany(p => p.Answers)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.NoAction)  // 🔥 Tránh vòng lặp khóa ngoại
-                .HasConstraintName("FK_Answers_Users");
-        });
-
-        modelBuilder.Entity<Comment>(entity =>
-        {
-            entity.HasKey(e => e.CommentId);
-            entity.Property(e => e.Content).HasColumnType("text").IsRequired();
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())").HasColumnType("datetime");
-
-            entity.HasOne(d => d.Answer)
-                .WithMany(p => p.Comments)
-                .HasForeignKey(d => d.AnswerId)
-                .OnDelete(DeleteBehavior.Cascade)
-                .HasConstraintName("FK_Comments_Answers");
-
-            entity.HasOne(d => d.User)
-                .WithMany(p => p.Comments)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.NoAction)  // 🔥 Tránh vòng lặp khóa ngoại
-                .HasConstraintName("FK_Comments_Users");
         });
 
         OnModelCreatingPartial(modelBuilder);
