@@ -1,8 +1,10 @@
 ﻿using CourseManagementSystem.Filter;
+using CourseManagementSystem.Services.Assignments;
 using CourseManagementSystem.Services.Courses;
 using CourseManagementSystem.Services.Email;
 using CourseManagementSystem.Services.Models;
 using CourseManagementSystem.Services.Profile;
+using CourseManagementSystem.Services.QnA;
 using CourseManagementSystem.Services.Users;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -23,8 +25,15 @@ namespace CourseManagementSystem
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
             builder.Services.AddHttpClient();
+
+
             // Add services to the container.
             builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<ICourseService, CourseService>();
+            builder.Services.AddScoped<IProfileService, ProfileService>();
+            builder.Services.AddScoped<IAssignmentService, AssignmentService>();
+            builder.Services.AddScoped<IQnAService, QnAService>();
+
 
             // Đăng ký DbContext để kết nối với cơ sở dữ liệu
             builder.Services.AddDbContext<CourseManagementContext>(options =>
@@ -96,22 +105,7 @@ namespace CourseManagementSystem
                     }
                 });
             });
-            // Đăng ký các dịch vụ trong DI container
-            builder.Services.AddScoped<ICourseService, CourseService>();
 
-            builder.Services.AddScoped<IProfileService, ProfileService>();
-
-            // Cấu hình CORS cho phép mọi domain
-            //builder.Services.AddCors(options =>
-            //{
-            //    options.AddPolicy("AllowAllOrigins",
-            //        policy =>
-            //        {
-            //            policy.AllowAnyOrigin()  // Cho phép mọi domain
-            //                .AllowAnyMethod()    // Cho phép mọi phương thức HTTP
-            //                .AllowAnyHeader();   // Cho phép mọi header
-            //        });
-            //});
 
             builder.Services.AddCors(options =>
             {

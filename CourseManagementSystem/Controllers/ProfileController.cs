@@ -1,12 +1,14 @@
 ﻿using CourseManagementSystem.Models;
 using CourseManagementSystem.Services.Profile;
 using CourseManagementSystem.Services.Users;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CourseManagementSystem.Controllers
 {
     [Route("[controller]")]
     [ApiController]
+    [Authorize]
     public class ProfileController : ControllerBase
     {
         private readonly IProfileService _profileService;
@@ -19,10 +21,18 @@ namespace CourseManagementSystem.Controllers
         }
 
         // API lấy thông tin profile của người dùng
-        [HttpGet("{userId}/get-profile")]
-        public IActionResult GetProfile(int userId)
+        [HttpGet("get-profile")]
+        public IActionResult GetProfile()
         {
-            var user = _userService.GetUserById(userId);
+            // Get user ID from the claims and parse it into an integer
+            var currentUserIdClaim = User.FindFirst("IdUser")?.Value;
+            if (string.IsNullOrEmpty(currentUserIdClaim) || !int.TryParse(currentUserIdClaim, out int currentUserId))
+            {
+                return NotFound(new { message = "User not found." });
+            }
+
+            // Fetch the user details using the current user ID
+            var user = _userService.GetUserById(currentUserId);
             if (user == null)
             {
                 return NotFound(new { message = "User not found." });
@@ -40,15 +50,24 @@ namespace CourseManagementSystem.Controllers
         }
 
         // API cập nhật thông tin profile của người dùng
-        [HttpPut("{userId}/update-profile")]
-        public IActionResult UpdateProfile(int userId, [FromBody] UpdateProfileRequest request)
+        [HttpPut("update-profile")]
+        public IActionResult UpdateProfile([FromBody] UpdateProfileRequest request)
         {
-            var user = _userService.GetUserById(userId);
+            // Get user ID from the claims and parse it into an integer
+            var currentUserIdClaim = User.FindFirst("IdUser")?.Value;
+            if (string.IsNullOrEmpty(currentUserIdClaim) || !int.TryParse(currentUserIdClaim, out int currentUserId))
+            {
+                return NotFound(new { message = "User not found." });
+            }
+
+            // Fetch the user details using the current user ID
+            var user = _userService.GetUserById(currentUserId);
             if (user == null)
             {
                 return NotFound(new { message = "User not found." });
             }
 
+            // Update the profile information
             var result = _profileService.UpdateProfile(user, request.FullName, request.Email, request.PhoneNumber);
             if (!result)
             {
@@ -59,16 +78,18 @@ namespace CourseManagementSystem.Controllers
         }
 
         // API thay đổi mật khẩu
-        [HttpPut("{userId}/change-password")]
-        public IActionResult ChangePassword(int userId, [FromBody] ChangePasswordRequest request)
+        [HttpPut("change-password")]
+        public IActionResult ChangePassword([FromBody] ChangePasswordRequest request)
         {
-            var user = _userService.GetUserById(userId);
-            if (user == null)
+            // Get user ID from the claims and parse it into an integer
+            var currentUserIdClaim = User.FindFirst("IdUser")?.Value;
+            if (string.IsNullOrEmpty(currentUserIdClaim) || !int.TryParse(currentUserIdClaim, out int currentUserId))
             {
                 return NotFound(new { message = "User not found." });
             }
 
-            var result = _profileService.ChangePassword(user, request.CurrentPassword, request.NewPassword);
+            // Change the password
+            var result = _profileService.ChangePassword(currentUserId, request.CurrentPassword, request.NewPassword);
             if (!result)
             {
                 return BadRequest(new { message = "Invalid current password or password change failed." });

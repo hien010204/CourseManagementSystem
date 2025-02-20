@@ -1,29 +1,29 @@
 ﻿using CourseManagementSystem.Models;
+using CourseManagementSystem.Services.Users;
 
 namespace CourseManagementSystem.Services.Profile
 {
     public class ProfileService : IProfileService
     {
         private readonly CourseManagementContext _context;
+        private readonly IUserService _userService;
 
-        public ProfileService(CourseManagementContext context)
+        public ProfileService(CourseManagementContext context, IUserService userService)
         {
             _context = context;
+            _userService = userService;
         }
 
-        public bool ChangePassword(User user, string currentPassword, string newPassword)
+        public bool ChangePassword(int iduser, string currentPassword, string newPassword)
         {
-            var existingUser = _context.Users.FirstOrDefault(u => u.IdUser == user.IdUser);
-            if (existingUser == null)
+            var existingUser = _userService.GetUserById(iduser);
+            // Kiểm tra mật khẩu cũ
+            if (!BCrypt.Net.BCrypt.Verify(currentPassword, existingUser.PasswordHash))
             {
+
                 return false;
             }
 
-            // Kiểm tra mật khẩu cũ
-            if (existingUser.PasswordHash != BCrypt.Net.BCrypt.HashPassword(currentPassword)) // Giả sử mật khẩu chưa mã hóa
-            {
-                return false;
-            }
 
             // Cập nhật mật khẩu mới
             existingUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
