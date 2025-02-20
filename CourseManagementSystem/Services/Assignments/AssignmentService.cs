@@ -1,4 +1,5 @@
 ﻿using CourseManagementSystem.DTO;
+using CourseManagementSystem.DTO.Assignment;
 using CourseManagementSystem.Models;
 using Microsoft.EntityFrameworkCore;
 

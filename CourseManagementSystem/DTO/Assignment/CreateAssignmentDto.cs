@@ -1,4 +1,4 @@
-﻿namespace CourseManagementSystem.DTO
+﻿namespace CourseManagementSystem.DTO.Assignment
 {
     public class CreateAssignmentDto
     {

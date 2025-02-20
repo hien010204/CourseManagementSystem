@@ -34,6 +34,12 @@ namespace CourseManagementSystem
             builder.Services.AddScoped<IAssignmentService, AssignmentService>();
             builder.Services.AddScoped<IQnAService, QnAService>();
 
+            builder.Services.AddControllers()
+            .AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
+                options.JsonSerializerOptions.MaxDepth = 64; // Tăng độ sâu nếu cần
+            });
 
             // Đăng ký DbContext để kết nối với cơ sở dữ liệu
             builder.Services.AddDbContext<CourseManagementContext>(options =>

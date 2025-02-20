@@ -1,4 +1,4 @@
-﻿using CourseManagementSystem.DTO;
+﻿using CourseManagementSystem.DTO.Assignment;
 using CourseManagementSystem.Services.Assignments;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
