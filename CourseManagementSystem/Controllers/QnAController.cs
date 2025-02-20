@@ -1,11 +1,12 @@
-﻿using CourseManagementSystem.Models;
+﻿using CourseManagementSystem.DTO.SubmitQnA;
+using CourseManagementSystem.Models;
 using CourseManagementSystem.Services.QnA;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CourseManagementSystem.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("[controller]")]
     [ApiController]
     public class QnAController : ControllerBase
     {
@@ -16,97 +17,77 @@ namespace CourseManagementSystem.Controllers
             _qnAService = qnAService;
         }
 
-        // ✅ Submit a Question
-        [Authorize]
-        [HttpPost("submit")]
-        public async Task<IActionResult> SubmitQuestion([FromBody] Question question)
-        {
-            if (question == null || string.IsNullOrWhiteSpace(question.Title) || string.IsNullOrWhiteSpace(question.Content))
-                return BadRequest("Question title and content are required.");
-
-            try
-            {
-                var result = await _qnAService.SubmitQuestionAsync(question);
-                return CreatedAtAction(nameof(GetQuestion), new { id = result.QuestionId }, result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"An error occurred: {ex.Message}");
-            }
-        }
-
-        // ✅ View All Questions
+        // ✅ Xem danh sách câu hỏi (View Q&A)
         [HttpGet("view")]
         public async Task<ActionResult<IEnumerable<Question>>> GetQuestions()
         {
-            try
-            {
-                var questions = await _qnAService.GetQuestionsAsync();
-                if (questions == null || !questions.Any()) return NotFound("No questions found.");
-                return Ok(questions);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"An error occurred: {ex.Message}");
-            }
+            var questions = await _qnAService.GetQuestionsAsync();
+            if (questions == null || !questions.Any()) return NotFound("Không tìm thấy câu hỏi nào.");
+            return Ok(questions);
         }
 
-        // ✅ View Specific Question
+        // ✅ Xem chi tiết câu hỏi cụ thể
         [HttpGet("view/{id}")]
         public async Task<ActionResult<Question>> GetQuestion(int id)
         {
-            if (id <= 0) return BadRequest("Invalid question ID.");
+            if (id <= 0) return BadRequest("ID câu hỏi không hợp lệ.");
 
-            try
-            {
-                var question = await _qnAService.GetQuestionByIdAsync(id);
-                if (question == null) return NotFound("Question not found.");
+            var question = await _qnAService.GetQuestionByIdAsync(id);
+            if (question == null) return NotFound("Không tìm thấy câu hỏi.");
 
-                return Ok(question);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"An error occurred: {ex.Message}");
-            }
+            return Ok(question);
         }
 
-        // ✅ Answer a Question
-        [Authorize]
+        // ✅ Đăng câu hỏi mới (Chỉ học sinh đăng câu hỏi)
+        [Authorize(Roles = "Student")]
+        [HttpPost("submit")]
+        public async Task<IActionResult> SubmitQuestion([FromBody] SubmitQuestionDTO questionDto)
+        {
+            var currentUserIdClaim = User.FindFirst("IdUser")?.Value;
+            if (currentUserIdClaim == null)
+            {
+                return NotFound(new { message = "Không tìm thấy người dùng." });
+            }
+
+            // Lấy ID người dùng (học sinh) và gán vào câu hỏi
+            var result = await _qnAService.SubmitQuestionAsync(questionDto, int.Parse(currentUserIdClaim));
+            return CreatedAtAction(nameof(GetQuestion), new { id = result.QuestionId }, result);
+        }
+
+        // ✅ Trả lời câu hỏi (Chỉ Admin và Teacher có quyền trả lời)
+        [Authorize(Roles = "Admin,Teacher")]
         [HttpPost("answer")]
-        public async Task<IActionResult> SubmitAnswer([FromBody] Answer answer)
+        public async Task<IActionResult> SubmitAnswer([FromBody] SubmitAnswerDTO answerDto)
         {
-            if (answer == null || string.IsNullOrWhiteSpace(answer.Content))
-                return BadRequest("Answer content is required.");
+            var currentUserIdClaim = User.FindFirst("IdUser")?.Value;
+            if (string.IsNullOrEmpty(currentUserIdClaim) || !int.TryParse(currentUserIdClaim, out int currentUserId))
+            {
+                return NotFound(new { message = "Không tìm thấy người dùng." });
+            }
 
-            try
-            {
-                var result = await _qnAService.SubmitAnswerAsync(answer);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"An error occurred: {ex.Message}");
-            }
+            if (string.IsNullOrWhiteSpace(answerDto.Content))
+                return BadRequest("Nội dung câu trả lời là bắt buộc.");
+
+            var result = await _qnAService.SubmitAnswerAsync(answerDto, currentUserId);
+            return Ok(result);
         }
 
-        // ✅ Comment on an Answer
-        [Authorize]
+        // ✅ Bình luận vào câu trả lời (Mọi người đều có thể bình luận)
+        [Authorize(Roles = "Student,Teacher,Admin")]
         [HttpPost("comment")]
-        public async Task<IActionResult> AddComment([FromBody] Comment comment)
+        public async Task<IActionResult> AddComment([FromBody] SubmitCommentDTO commentDto)
         {
-            if (comment == null || string.IsNullOrWhiteSpace(comment.Content))
-                return BadRequest("Comment content is required.");
+            var currentUserIdClaim = User.FindFirst("IdUser")?.Value;
+            if (string.IsNullOrEmpty(currentUserIdClaim) || !int.TryParse(currentUserIdClaim, out int currentUserId))
+            {
+                return NotFound(new { message = "Không tìm thấy người dùng." });
+            }
 
-            try
-            {
-                var result = await _qnAService.AddCommentAsync(comment);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"An error occurred: {ex.Message}");
-            }
+            if (string.IsNullOrWhiteSpace(commentDto.Content))
+                return BadRequest("Nội dung bình luận là bắt buộc.");
+
+            var result = await _qnAService.AddCommentAsync(commentDto, currentUserId);
+            return Ok(result);
         }
     }
-
 }

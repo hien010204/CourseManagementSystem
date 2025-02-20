@@ -1,4 +1,6 @@
-﻿using CourseManagementSystem.Models;
+﻿using CourseManagementSystem.DTO.Question;
+using CourseManagementSystem.DTO.SubmitQnA;
+using CourseManagementSystem.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace CourseManagementSystem.Services.QnA
@@ -12,118 +14,140 @@ namespace CourseManagementSystem.Services.QnA
             _context = context;
         }
 
-        // ✅ Submit a Question
-        public async Task<Question> SubmitQuestionAsync(Question question)
+        //  Submit a Question (User can submit, Admin/Teacher can reply, everyone can view)
+        public async Task<Question> SubmitQuestionAsync(SubmitQuestionDTO questionDto, int userId)
         {
-            if (question == null || string.IsNullOrWhiteSpace(question.Title) ||
-                string.IsNullOrWhiteSpace(question.Content) || question.UserId <= 0)
+            if (questionDto == null || string.IsNullOrWhiteSpace(questionDto.Title) ||
+                string.IsNullOrWhiteSpace(questionDto.Content) || userId <= 0)
             {
                 throw new ArgumentException("Invalid question data. UserId is required and must be valid.");
             }
 
-            // Kiểm tra UserID có tồn tại không
-            var userExists = await _context.Users.AnyAsync(u => u.IdUser == question.UserId);
-            if (!userExists)
+            var question = new Question
             {
-                throw new ArgumentException("UserId does not exist.");
-            }
+                UserId = userId,
+                Title = questionDto.Title,
+                Content = questionDto.Content,
+                CreatedAt = DateTime.UtcNow
+            };
 
-            question.CreatedAt = DateTime.UtcNow;
             _context.Questions.Add(question);
             await _context.SaveChangesAsync();
             return question;
         }
 
-
-        // ✅ Get All Questions (Optimized)
-        public async Task<IEnumerable<Question>> GetQuestionsAsync()
+        // Get All Questions
+        public async Task<IEnumerable<QuestionDto>> GetQuestionsAsync()
         {
             return await _context.Questions
-                .Include(q => q.User)
+                .Include(q => q.User)  // Thêm người tạo câu hỏi
                 .Include(q => q.Answers)
-                    .ThenInclude(a => a.User)
-                .Select(q => new Question
+                    .ThenInclude(a => a.User)  // Thêm người trả lời
+                    .ThenInclude(a => a.Comments)  // Thêm bình luận cho câu trả lời
+                .Select(q => new QuestionDto
                 {
                     QuestionId = q.QuestionId,
                     Title = q.Title,
                     Content = q.Content,
+                    CreatedBy = q.User.FullName,  // Chỉ lấy tên người tạo câu hỏi
                     CreatedAt = q.CreatedAt,
-                    User = new User
-                    {
-                        IdUser = q.User.IdUser,
-                        FullName = q.User.FullName,
-                        Email = q.User.Email
-                    },
-                    Answers = q.Answers.Select(a => new Answer
+                    Answers = q.Answers.Select(a => new AnswerDto
                     {
                         AnswerId = a.AnswerId,
-                        QuestionId = q.QuestionId, // ✅ Ensure mapping
                         Content = a.Content,
+                        AnsweredBy = a.User.FullName,  // Chỉ lấy tên người trả lời
                         CreatedAt = a.CreatedAt,
-                        User = new User
+                        Comments = a.Comments.Select(c => new CommentDto
                         {
-                            IdUser = a.User.IdUser,
-                            FullName = a.User.FullName
-                        }
+                            CommentId = c.CommentId,
+                            Content = c.Content,
+                            CommentedBy = c.User.FullName,  // Chỉ lấy tên người bình luận
+                            CreatedAt = c.CreatedAt
+                        }).ToList()
                     }).ToList()
-                }).ToListAsync();
+                })
+                .ToListAsync();
         }
 
-        // ✅ Get a Specific Question by ID
-        public async Task<Question> GetQuestionByIdAsync(int id)
+
+
+        // Get a Specific Question by ID
+        public async Task<QuestionDto> GetQuestionByIdAsync(int id)
         {
             if (id <= 0) throw new ArgumentException("Invalid question ID.");
 
-            return await _context.Questions
+            var question = await _context.Questions
                 .Include(q => q.User)
                 .Include(q => q.Answers)
                     .ThenInclude(a => a.User)
-                .Include(q => q.Answers)
                     .ThenInclude(a => a.Comments)
-                        .ThenInclude(c => c.User)
                 .FirstOrDefaultAsync(q => q.QuestionId == id);
+
+            if (question == null)
+                throw new KeyNotFoundException("Question not found.");
+
+            return new QuestionDto
+            {
+                QuestionId = question.QuestionId,
+                Title = question.Title,
+                Content = question.Content,
+                CreatedBy = question.User.FullName,  // Tên người tạo câu hỏi
+                CreatedAt = question.CreatedAt,
+                Answers = question.Answers?.Select(a => new AnswerDto
+                {
+                    AnswerId = a.AnswerId,
+                    Content = a.Content,
+                    AnsweredBy = a.User.FullName,  // Tên người trả lời
+                    CreatedAt = a.CreatedAt,
+                    Comments = a.Comments?.Select(c => new CommentDto
+                    {
+                        CommentId = c.CommentId,
+                        Content = c.Content,
+                        CommentedBy = c.User.FullName,  // Tên người bình luận
+                        CreatedAt = c.CreatedAt
+                    }).ToList() ?? new List<CommentDto>()  // Nếu Comments là null, trả về danh sách trống
+                }).ToList() ?? new List<AnswerDto>()  // Nếu Answers là null, trả về danh sách trống
+            };
         }
 
-        // ✅ Submit an Answer (Ensure question exists & valid UserId)
-        public async Task<Answer> SubmitAnswerAsync(Answer answer)
+
+
+
+        // ✅ Submit an Answer (Admin/Teacher can reply)
+        public async Task<Answer> SubmitAnswerAsync(SubmitAnswerDTO answerDto, int userId)
         {
-            if (answer == null || string.IsNullOrWhiteSpace(answer.Content) || answer.UserId <= 0)
+            if (answerDto == null || string.IsNullOrWhiteSpace(answerDto.Content) || userId <= 0)
             {
                 throw new ArgumentException("Invalid answer data. UserId is required.");
             }
 
-            // Kiểm tra UserID có tồn tại không
-            var userExists = await _context.Users.AnyAsync(u => u.IdUser == answer.UserId);
-            if (!userExists)
+            var answer = new Answer
             {
-                throw new ArgumentException("UserId does not exist.");
-            }
+                UserId = userId,
+                QuestionId = answerDto.QuestionId,
+                Content = answerDto.Content,
+                CreatedAt = DateTime.UtcNow
+            };
 
-            // Kiểm tra QuestionID có tồn tại không
-            var questionExists = await _context.Questions.AnyAsync(q => q.QuestionId == answer.QuestionId);
-            if (!questionExists)
-            {
-                throw new ArgumentException("QuestionId does not exist.");
-            }
-
-            answer.CreatedAt = DateTime.UtcNow;
             _context.Answers.Add(answer);
             await _context.SaveChangesAsync();
             return answer;
         }
 
-
-        // ✅ Add a Comment (Ensure answer exists & valid UserId)
-        public async Task<Comment> AddCommentAsync(Comment comment)
+        // ✅ Add a Comment (Users can comment, everyone can see)
+        public async Task<Comment> AddCommentAsync(SubmitCommentDTO commentDto, int userId)
         {
-            if (comment == null || string.IsNullOrWhiteSpace(comment.Content) || comment.UserId <= 0)
+            if (commentDto == null || string.IsNullOrWhiteSpace(commentDto.Content) || userId <= 0)
                 throw new ArgumentException("Invalid comment data.");
 
-            var answerExists = await _context.Answers.AnyAsync(a => a.AnswerId == comment.AnswerId);
-            if (!answerExists)
-                throw new ArgumentException("Answer ID does not exist.");
+            var comment = new Comment
+            {
+                UserId = userId,
+                AnswerId = commentDto.AnswerId,
+                Content = commentDto.Content,
+                CreatedAt = DateTime.UtcNow
+            };
 
-            comment.CreatedAt = DateTime.UtcNow;
             _context.Comments.Add(comment);
             await _context.SaveChangesAsync();
             return comment;

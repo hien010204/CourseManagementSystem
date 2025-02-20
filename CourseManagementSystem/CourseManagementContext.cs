@@ -27,9 +27,9 @@ public partial class CourseManagementContext : DbContext
     public virtual DbSet<Schedule> Schedules { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
-    public DbSet<Question> Questions { get; set; }
-    public DbSet<Answer> Answers { get; set; }
-    public DbSet<Comment> Comments { get; set; }
+    public virtual DbSet<Question> Questions { get; set; }
+    public virtual DbSet<Answer> Answers { get; set; }
+    public virtual DbSet<Comment> Comments { get; set; }
 
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -218,12 +218,14 @@ public partial class CourseManagementContext : DbContext
             entity.HasKey(e => e.QuestionId);
             entity.Property(e => e.Title).HasMaxLength(255).IsRequired();
             entity.Property(e => e.Content).HasColumnType("text").IsRequired();
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())").HasColumnType("datetime");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
 
             entity.HasOne(d => d.User)
                 .WithMany(p => p.Questions)
                 .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.Cascade)
+                .OnDelete(DeleteBehavior.Restrict) // 🛠 Tránh xóa user gây lỗi
                 .HasConstraintName("FK_Questions_Users");
         });
 
@@ -231,18 +233,20 @@ public partial class CourseManagementContext : DbContext
         {
             entity.HasKey(e => e.AnswerId);
             entity.Property(e => e.Content).HasColumnType("text").IsRequired();
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())").HasColumnType("datetime");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
 
             entity.HasOne(d => d.Question)
                 .WithMany(p => p.Answers)
                 .HasForeignKey(d => d.QuestionId)
-                .OnDelete(DeleteBehavior.Cascade)
+                .OnDelete(DeleteBehavior.Cascade) // 🛠 Xóa câu hỏi thì xóa luôn câu trả lời
                 .HasConstraintName("FK_Answers_Questions");
 
             entity.HasOne(d => d.User)
                 .WithMany(p => p.Answers)
                 .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.NoAction)  // 🔥 Tránh vòng lặp khóa ngoại
+                .OnDelete(DeleteBehavior.Restrict) // 🛠 Tránh vòng lặp khóa ngoại
                 .HasConstraintName("FK_Answers_Users");
         });
 
@@ -250,20 +254,23 @@ public partial class CourseManagementContext : DbContext
         {
             entity.HasKey(e => e.CommentId);
             entity.Property(e => e.Content).HasColumnType("text").IsRequired();
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())").HasColumnType("datetime");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
 
             entity.HasOne(d => d.Answer)
                 .WithMany(p => p.Comments)
                 .HasForeignKey(d => d.AnswerId)
-                .OnDelete(DeleteBehavior.Cascade)
+                .OnDelete(DeleteBehavior.Cascade) // 🛠 Xóa trả lời thì xóa luôn comment
                 .HasConstraintName("FK_Comments_Answers");
 
             entity.HasOne(d => d.User)
                 .WithMany(p => p.Comments)
                 .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.NoAction)  // 🔥 Tránh vòng lặp khóa ngoại
+                .OnDelete(DeleteBehavior.Restrict) // 🛠 Tránh vòng lặp khóa ngoại
                 .HasConstraintName("FK_Comments_Users");
         });
+
 
         OnModelCreatingPartial(modelBuilder);
     }
