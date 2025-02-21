@@ -50,19 +50,19 @@ namespace CourseManagementSystem.Services.QnA
                     Title = q.Title,
                     Content = q.Content,
                     CreatedBy = q.User.FullName,  // Chỉ lấy tên người tạo câu hỏi
-                    CreatedAt = q.CreatedAt,
+                    CreatedAt = (DateTime)q.CreatedAt,
                     Answers = q.Answers.Select(a => new AnswerDto
                     {
                         AnswerId = a.AnswerId,
                         Content = a.Content,
                         AnsweredBy = a.User.FullName,  // Chỉ lấy tên người trả lời
-                        CreatedAt = a.CreatedAt,
+                        CreatedAt = (DateTime)a.CreatedAt,
                         Comments = a.Comments.Select(c => new CommentDto
                         {
                             CommentId = c.CommentId,
                             Content = c.Content,
                             CommentedBy = c.User.FullName,  // Chỉ lấy tên người bình luận
-                            CreatedAt = c.CreatedAt
+                            CreatedAt = (DateTime)c.CreatedAt
                         }).ToList()
                     }).ToList()
                 })
@@ -92,19 +92,19 @@ namespace CourseManagementSystem.Services.QnA
                 Title = question.Title,
                 Content = question.Content,
                 CreatedBy = question.User.FullName,  // Tên người tạo câu hỏi
-                CreatedAt = question.CreatedAt,
+                CreatedAt = (DateTime)question.CreatedAt,
                 Answers = question.Answers?.Select(a => new AnswerDto
                 {
                     AnswerId = a.AnswerId,
                     Content = a.Content,
                     AnsweredBy = a.User.FullName,  // Tên người trả lời
-                    CreatedAt = a.CreatedAt,
+                    CreatedAt = (DateTime)a.CreatedAt,
                     Comments = a.Comments?.Select(c => new CommentDto
                     {
                         CommentId = c.CommentId,
                         Content = c.Content,
                         CommentedBy = c.User.FullName,  // Tên người bình luận
-                        CreatedAt = c.CreatedAt
+                        CreatedAt = (DateTime)c.CreatedAt
                     }).ToList() ?? new List<CommentDto>()  // Nếu Comments là null, trả về danh sách trống
                 }).ToList() ?? new List<AnswerDto>()  // Nếu Answers là null, trả về danh sách trống
             };
