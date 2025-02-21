@@ -1,4 +1,5 @@
 ﻿using CourseManagementSystem.Filter;
+using CourseManagementSystem.Services.Announcements;
 using CourseManagementSystem.Services.Assignments;
 using CourseManagementSystem.Services.Courses;
 using CourseManagementSystem.Services.Email;
@@ -33,6 +34,7 @@ namespace CourseManagementSystem
             builder.Services.AddScoped<IProfileService, ProfileService>();
             builder.Services.AddScoped<IAssignmentService, AssignmentService>();
             builder.Services.AddScoped<IQnAService, QnAService>();
+            builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
 
             builder.Services.AddControllers()
             .AddJsonOptions(options =>
