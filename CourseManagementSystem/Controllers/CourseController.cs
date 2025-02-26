@@ -134,7 +134,11 @@ namespace CourseManagementSystem.Controllers
                 course.Description,
                 startDate = course.StartDate,
                 endDate = course.EndDate,
-                createdBy = course.CreatedBy
+                createdBy = new
+                {
+                    course.CreatedByNavigation.FullName,
+                    course.CreatedByNavigation.Role
+                }
             });
         }
 
@@ -258,7 +262,7 @@ namespace CourseManagementSystem.Controllers
 
 
         [Authorize(Roles = "Admin,Teacher")]
-        [HttpGet("course/{courseId}/confirmed-students")]
+        [HttpGet("confirmed-students/{courseId}")]
         public IActionResult GetConfirmedStudentsInCourse(int courseId)
         {
             var studentsInCourse = _courseService.GetConfirmedStudentsInCourse(courseId);
@@ -269,6 +273,54 @@ namespace CourseManagementSystem.Controllers
             }
 
             return Ok(studentsInCourse);
+        }
+        //iter 4
+        [Authorize(Roles = "Admin, Teacher")]
+        [HttpGet("unassigned-courses")]
+        public IActionResult GetUnassignedCourses()
+        {
+            var unassignedCourses = _courseService.GetUnassignedCourses();
+            if (unassignedCourses == null || !unassignedCourses.Any())
+            {
+                return NotFound(new { message = "No unassigned courses found." });
+            }
+
+            return Ok(unassignedCourses);
+        }
+
+        [Authorize(Roles = "Admin, Teacher")]
+        [HttpGet("students-not-enrolled")]
+        public IActionResult GetStudentsNotEnrolled()
+        {
+            var students = _courseService.GetStudentsNotEnrolled();
+            if (students == null || !students.Any())
+            {
+                return NotFound(new { message = "All students are enrolled in courses." });
+            }
+
+            return Ok(students);
+        }
+
+
+
+
+        [Authorize(Roles = "Admin, Teacher")]
+        [HttpPost("assign-teacher/{courseId}")]
+        public IActionResult AssignTeacherToCourse(int courseId, [FromBody] int teacherId)
+        {
+            var course = _courseService.GetCourseById(courseId);
+            if (course == null)
+            {
+                return NotFound(new { message = "Course not found." });
+            }
+
+            var teacherAssigned = _courseService.AssignTeacherToCourse(courseId, teacherId);
+            if (!teacherAssigned)
+            {
+                return BadRequest(new { message = "Failed to assign teacher." });
+            }
+
+            return Ok(new { message = "Teacher assigned successfully!" });
         }
 
     }

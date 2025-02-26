@@ -27,7 +27,9 @@ namespace CourseManagementSystem.Services.Assignments
         {
             // Truy vấn bảng Assignments để lấy bài tập theo AssignmentID
             var assignment = await _context.Assignments
-                .FirstOrDefaultAsync(a => a.AssignmentId == assignmentId);  // Lọc theo AssignmentID
+                .Include(a => a.AssignmentSubmissions)
+                .FirstOrDefaultAsync(a => a.AssignmentId == assignmentId);// Lọc theo AssignmentID
+
 
             return assignment;  // Trả về bài tập tìm được
         }
@@ -118,6 +120,7 @@ namespace CourseManagementSystem.Services.Assignments
                 AssignmentId = assignmentId,
                 StudentId = submissionDto.StudentId,
                 Feedback = submissionDto.Feedback,
+
                 SubmissionDate = DateTime.Now
             };
 
@@ -135,6 +138,7 @@ namespace CourseManagementSystem.Services.Assignments
 
             return submissionDtoResponse;
         }
+
         public async Task<List<StudentSubmissionDto>> GetSubmissionsByAssignmentId(int assignmentId)
         {
             // Truy vấn bảng AssignmentSubmissions để lấy danh sách các bài nộp của sinh viên
@@ -156,7 +160,7 @@ namespace CourseManagementSystem.Services.Assignments
             return submissions; // Trả về danh sách bài nộp
         }
 
-
+        //dùng để chấm điểm
         public async Task<AssignmentSubmission> GradeAssignment(int submissionId, GradeAssignmentDto gradeDto)
         {
             // Tìm bài nộp của học sinh theo ID
@@ -178,6 +182,127 @@ namespace CourseManagementSystem.Services.Assignments
             await _context.SaveChangesAsync();
 
             return submission;  // Trả về bài nộp đã được chấm điểm và phản hồi
+        }
+
+        // list bài chưa chấm điểm
+        public async Task<List<StudentSubmissionDto>> GetUngradedSubmissions()
+        {
+            var ungradedSubmissions = await _context.AssignmentSubmissions
+                .Where(s => s.Grade == null)  // Lọc bài nộp chưa có điểm
+                .Include(s => s.Student)  // Lấy thông tin sinh viên
+                .OrderByDescending(s => s.SubmissionDate)  // Sắp xếp theo ngày nộp
+                .Select(s => new StudentSubmissionDto
+                {
+                    SubmissionId = s.SubmissionId,
+                    StudentName = s.Student.FullName,
+                    Grade = s.Grade,
+                    Feedback = s.Feedback,
+                    SubmissionDate = (DateTime)s.SubmissionDate
+                })
+                .ToListAsync();
+
+            return ungradedSubmissions;
+        }
+        // list bài chưa có feedback
+        public async Task<List<StudentSubmissionDto>> GetNoFeedbackSubmissions()
+        {
+            var noFeedbackSubmissions = await _context.AssignmentSubmissions
+                .Where(s => s.Feedback == null)  // Lọc bài nộp chưa có phản hồi
+                .Include(s => s.Student)  // Lấy thông tin sinh viên
+                .OrderByDescending(s => s.SubmissionDate)  // Sắp xếp theo ngày nộp
+                .Select(s => new StudentSubmissionDto
+                {
+                    SubmissionId = s.SubmissionId,
+                    StudentName = s.Student.FullName,
+                    Grade = s.Grade,
+                    Feedback = s.Feedback,
+                    SubmissionDate = (DateTime)s.SubmissionDate
+                })
+                .ToListAsync();
+
+            return noFeedbackSubmissions;
+        }
+
+
+        public async Task<StudentSubmissionDto> GetGradeAndFeedback(int submissionId)
+        {
+            // Tìm bài nộp với ID cụ thể
+            var submission = await _context.AssignmentSubmissions
+                .Where(s => s.SubmissionId == submissionId)
+                .Select(s => new StudentSubmissionDto
+                {
+                    SubmissionId = s.SubmissionId,
+                    StudentId = s.StudentId,          // Lấy ID của sinh viên
+                    StudentName = s.Student.FullName, // Lấy tên của sinh viên
+                    Grade = s.Grade,              // Lấy điểm của bài nộp
+                    Feedback = s.Feedback         // Lấy phản hồi của bài nộp
+                })
+                .FirstOrDefaultAsync();
+
+            // Nếu không tìm thấy bài nộp, trả về null
+            if (submission == null)
+            {
+                return null;
+            }
+
+            // Trả về thông tin điểm và phản hồi của bài nộp
+            return submission;
+        }
+        //list bài đã được chấm điểm và feedback
+        public async Task<List<StudentSubmissionDto>> GetGradedAndFeedbackSubmissions()
+        {
+            var gradedSubmissions = await _context.AssignmentSubmissions
+                .Where(s => s.Grade != null && s.Feedback != null)  // Lọc bài nộp có điểm và phản hồi
+                .Include(s => s.Student)  // Lấy thông tin sinh viên
+                .OrderByDescending(s => s.SubmissionDate)  // Sắp xếp theo ngày nộp
+                .Select(s => new StudentSubmissionDto
+                {
+                    SubmissionId = s.SubmissionId,
+                    StudentName = s.Student.FullName,
+                    Grade = s.Grade,
+                    Feedback = s.Feedback,
+                    SubmissionDate = (DateTime)s.SubmissionDate
+                })
+                .ToListAsync();
+
+            return gradedSubmissions;
+        }
+
+        public async Task<List<Assignment>> FilterAssignmentsByDueDate(int courseId, DateOnly? dueDate)
+        {
+            var assignmentsQuery = _context.Assignments.Where(a => a.CourseId == courseId);
+            if (dueDate.HasValue)
+            {
+                assignmentsQuery = assignmentsQuery.Where(a => a.DueDate <= dueDate.Value);
+            }
+            return await assignmentsQuery.ToListAsync();
+        }
+
+        public async Task<List<User>> GetStudentsMissingSubmission(int assignmentId)
+        {
+            var studentsMissingSubmission = await _context.Users
+                .Where(s => s.Role == "Student" &&
+                            !_context.AssignmentSubmissions.Any(sub => sub.StudentId == s.IdUser && sub.AssignmentId == assignmentId))
+                .ToListAsync();
+
+            return studentsMissingSubmission;
+        }
+
+        public async Task<AssignmentSubmission> EditGradeAndFeedback(int submissionId, GradeAssignmentDto gradeDto)
+        {
+            var submission = await _context.AssignmentSubmissions
+                .FirstOrDefaultAsync(s => s.SubmissionId == submissionId);
+
+            if (submission == null)
+                return null;
+
+            submission.Grade = gradeDto.Grade;
+            submission.Feedback = gradeDto.Feedback;
+
+            _context.AssignmentSubmissions.Update(submission);
+            await _context.SaveChangesAsync();
+
+            return submission;
         }
 
 

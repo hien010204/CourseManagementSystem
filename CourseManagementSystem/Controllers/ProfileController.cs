@@ -20,7 +20,7 @@ namespace CourseManagementSystem.Controllers
             _userService = userService;
         }
 
-        // API lấy thông tin profile của người dùng
+
         [HttpGet("get-profile")]
         public IActionResult GetProfile()
         {
@@ -49,7 +49,7 @@ namespace CourseManagementSystem.Controllers
             });
         }
 
-        // API cập nhật thông tin profile của người dùng
+
         [HttpPut("update-profile")]
         public IActionResult UpdateProfile([FromBody] UpdateProfileRequest request)
         {
@@ -77,7 +77,7 @@ namespace CourseManagementSystem.Controllers
             return Ok(new { message = "Profile updated successfully." });
         }
 
-        // API thay đổi mật khẩu
+
         [HttpPut("change-password")]
         public IActionResult ChangePassword([FromBody] ChangePasswordRequest request)
         {
