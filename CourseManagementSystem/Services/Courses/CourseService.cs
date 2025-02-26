@@ -48,8 +48,11 @@ namespace CourseManagementSystem.Services.Courses
         }
         public Course GetCourseById(int courseId)
         {
-            return _context.Courses.FirstOrDefault(c => c.CourseId == courseId);
+            return _context.Courses
+                .Include(c => c.CreatedByNavigation)  // Bao gồm thông tin người tạo (User)
+                .FirstOrDefault(c => c.CourseId == courseId);
         }
+
 
         public List<Course> GetCoursesByUserId(int userId)
         {
@@ -163,11 +166,12 @@ namespace CourseManagementSystem.Services.Courses
             var userCourses = _context.Courses
                                       .Where(course => _context.CourseEnrollments
                                       .Any(enrollment => enrollment.CourseId == course.CourseId && enrollment.StudentId == userId))
+                                      .Include(course => course.CreatedByNavigation)
                                       .ToList();
 
             if (userCourses == null || !userCourses.Any())
             {
-                return null;  // Nếu không có khóa học nào
+                return null;
             }
 
             // Lấy thông tin khóa học và trạng thái đăng ký
@@ -181,7 +185,9 @@ namespace CourseManagementSystem.Services.Courses
                 EnrollmentStatus = _context.CourseEnrollments
                                    .Where(e => e.CourseId == course.CourseId && e.StudentId == userId)
                                    .Select(e => e.EnrollmentStatus)  // Trạng thái đăng ký từ CourseEnrollments
-                                   .FirstOrDefault()  // Lấy trạng thái đầu tiên
+                                   .FirstOrDefault(), // Lấy trạng thái đầu tiên
+                CreatedByFullName = course.CreatedByNavigation.FullName,  // Lấy tên người tạo
+                CreatedByRole = course.CreatedByNavigation.Role
             }).ToList();
 
             return courseList;
@@ -260,5 +266,64 @@ namespace CourseManagementSystem.Services.Courses
             }
             return _context.Courses.Where(c => c.CourseName.ToLower().Contains(courseName.ToLower())).ToList();
         }
+        //iter 4
+        public List<CourseDto> GetUnassignedCourses()
+        {
+            // Lọc các khóa học mà không có giảng viên gán (dựa vào bảng Schedules)
+            var unassignedCourses = _context.Courses
+                .Where(c => !c.Schedules.Any(s => s.TeacherId != null))  // Kiểm tra các khóa học không có giảng viên
+                .Select(c => new CourseDto
+                {
+                    CourseId = c.CourseId,
+                    CourseName = c.CourseName,
+                    Description = c.Description,
+                    StartDate = c.StartDate,
+                    EndDate = c.EndDate
+                })
+                .ToList();
+
+            return unassignedCourses;
+        }
+
+        // Lấy sinh viên chưa đăng ký khóa học
+        public List<UserDto> GetStudentsNotEnrolled()
+        {
+            var students = _context.Users
+                .Where(u => u.Role == "Student" && !_context.CourseEnrollments
+                    .Any(ce => ce.StudentId == u.IdUser))
+                .Select(u => new UserDto
+                {
+                    UserId = u.IdUser,
+                    FullName = u.FullName,
+                    Email = u.Email
+                })
+                .ToList();
+
+            return students;
+        }
+
+
+        // Gán giảng viên cho khóa học
+        public bool AssignTeacherToCourse(int courseId, int teacherId)
+        {
+            // Tìm khóa học theo CourseId
+            var course = _context.Courses.FirstOrDefault(c => c.CourseId == courseId);
+            if (course == null)
+            {
+                return false;  // Nếu không tìm thấy khóa học
+            }
+
+            // Kiểm tra xem giảng viên có tồn tại trong hệ thống và có vai trò "Teacher"
+            var teacher = _context.Users.FirstOrDefault(u => u.IdUser == teacherId && u.Role == "Teacher");
+            if (teacher == null)
+            {
+                return false;  // Nếu không tìm thấy giảng viên
+            }
+
+            _context.SaveChanges();  // Lưu thay đổi vào cơ sở dữ liệu
+            return true;  // Gán giảng viên thành công
+        }
+
+
     }
 }

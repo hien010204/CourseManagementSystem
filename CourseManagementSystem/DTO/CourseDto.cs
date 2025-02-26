@@ -8,5 +8,7 @@
         public DateOnly? StartDate { get; set; }
         public DateOnly? EndDate { get; set; }
         public string EnrollmentStatus { get; set; }
+        public string CreatedByFullName { get; set; }
+        public string CreatedByRole { get; set; }
     }
 }

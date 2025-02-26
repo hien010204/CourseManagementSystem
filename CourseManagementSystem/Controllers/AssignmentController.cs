@@ -17,7 +17,7 @@ namespace CourseManagementSystem.Controllers
             _assignmentService = assignmentService;
         }
 
-        // Get all assignments for a specific course
+        // xem tất cả bài tập của khoá học
         [HttpGet("get-assignments/{courseId}")]
         [Authorize]
         public async Task<IActionResult> GetAssignments(int courseId)
@@ -26,7 +26,7 @@ namespace CourseManagementSystem.Controllers
             return Ok(assignments);
         }
 
-        //Get a specific assignment by its ID
+        // xem bài tập
         [HttpGet("get-assignment/{assignmentId}")]
         [Authorize]
         public async Task<IActionResult> GetAssignment(int assignmentId)
@@ -37,6 +37,7 @@ namespace CourseManagementSystem.Controllers
             return Ok(assignment);
         }
 
+        // Tạo bài tập
         [HttpPost("create-assignment")]
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<IActionResult> CreateAssignment([FromBody] CreateAssignmentDto assignmentDto)
@@ -50,7 +51,7 @@ namespace CourseManagementSystem.Controllers
             return CreatedAtAction(nameof(GetAssignment), new { assignmentId = createdAssignment.AssignmentId }, createdAssignment);
         }
 
-
+        // Chỉnh sửa bài tập
         [HttpPut("edit-assignment/{assignmentId}")]
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<IActionResult> EditAssignment(int assignmentId, [FromBody] EditAssignmentDto assignmentDto)
@@ -70,7 +71,7 @@ namespace CourseManagementSystem.Controllers
             return Ok(updatedAssignment);
         }
 
-
+        // Xóa bài tập
         [HttpDelete("delete-assignment/{assignmentId}")]
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<IActionResult> DeleteAssignment(int assignmentId)
@@ -86,7 +87,7 @@ namespace CourseManagementSystem.Controllers
             return NoContent();  // Trả về HTTP 204 No Content nếu xóa thành công
         }
 
-
+        // nộp bài tập 
         [HttpPost("submit-assignment/{assignmentId}")]
         [Authorize(Roles = "Student")]
         public async Task<IActionResult> SubmitAssignment(int assignmentId, [FromBody] SubmitAssignmentDto submissionDto)
@@ -105,9 +106,9 @@ namespace CourseManagementSystem.Controllers
             // Trả về bài nộp thành công
             return CreatedAtAction(nameof(GetAssignment), new { assignmentId = submission.AssignmentId }, submission);
         }
-
+        // lấy danh sách bài nộp của sinh viên cho 1 bài tập cụ thể
         [HttpGet("get-submissions/{assignmentId}")]
-        [Authorize(Roles = "Teacher")]
+        [Authorize]
         public async Task<IActionResult> GetSubmissions(int assignmentId)
         {
             // Gọi dịch vụ để lấy danh sách sinh viên nộp bài
@@ -123,7 +124,7 @@ namespace CourseManagementSystem.Controllers
             return Ok(submissions);
         }
 
-
+        // chấm điểm bài nộp của học sinh
         [HttpPut("grade-assignment/{submissionId}")]
         [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> GradeAssignment(int submissionId, [FromBody] GradeAssignmentDto gradeDto)
@@ -142,6 +143,80 @@ namespace CourseManagementSystem.Controllers
             // Trả về bài nộp đã được chấm điểm và phản hồi
             return Ok(gradedSubmission);
         }
+
+        //iter4
+        // List bài chưa chấm điểm
+        [Authorize(Roles = "Teacher")]
+        [HttpGet("ungraded-submissions")]
+        public async Task<IActionResult> GetUngradedSubmissions()
+        {
+            var ungradedSubmissions = await _assignmentService.GetUngradedSubmissions();
+            return Ok(ungradedSubmissions);
+        }
+
+        // List bài chưa có feedback
+        [Authorize(Roles = "Teacher")]
+        [HttpGet("no-feedback-submissions")]
+        public async Task<IActionResult> GetNoFeedbackSubmissions()
+        {
+            var noFeedbackSubmissions = await _assignmentService.GetNoFeedbackSubmissions();
+            return Ok(noFeedbackSubmissions);
+        }
+
+        // Lấy thông tin điểm và feedback của một bài nộp cụ thể
+        [HttpGet("get-grade-feedback/{submissionId}")]
+        public async Task<IActionResult> GetGradeAndFeedback(int submissionId)
+        {
+            var submission = await _assignmentService.GetGradeAndFeedback(submissionId);
+
+            if (submission == null)
+            {
+                return NotFound("Assignment submission not found.");
+            }
+
+            return Ok(submission);
+        }
+
+        // List bài đã được chấm điểm và feedback
+        [HttpGet("graded-feedback-submissions")]
+        [Authorize(Roles = "Teacher")]
+        public async Task<IActionResult> GetGradedAndFeedbackSubmissions()
+        {
+            var gradedSubmissions = await _assignmentService.GetGradedAndFeedbackSubmissions();
+            return Ok(gradedSubmissions);
+        }
+
+        // Lọc bài tập theo hạn nộp
+        [HttpGet("filter-assignments/{courseId}")]
+        [Authorize(Roles = "Teacher")]
+        public async Task<IActionResult> FilterAssignmentsByDueDate(int courseId, [FromQuery] DateOnly? dueDate)
+        {
+            var assignments = await _assignmentService.FilterAssignmentsByDueDate(courseId, dueDate);
+            return Ok(assignments);
+        }
+
+        // Danh sách sinh viên chưa nộp bài
+        [HttpGet("students-missing-submissions/{assignmentId}")]
+        [Authorize(Roles = "Teacher")]
+        public async Task<IActionResult> GetStudentsMissingSubmission(int assignmentId)
+        {
+            var studentsMissingSubmission = await _assignmentService.GetStudentsMissingSubmission(assignmentId);
+            return Ok(studentsMissingSubmission);
+        }
+
+
+        // Chỉnh sửa điểm và phản hồi
+        [HttpPut("edit-grade-feedback/{submissionId}")]
+        [Authorize(Roles = "Teacher")]
+        public async Task<IActionResult> EditGradeAndFeedback(int submissionId, [FromBody] GradeAssignmentDto gradeDto)
+        {
+            var updatedSubmission = await _assignmentService.EditGradeAndFeedback(submissionId, gradeDto);
+            if (updatedSubmission == null)
+                return NotFound("Assignment submission not found.");
+
+            return Ok(updatedSubmission);
+        }
+
 
     }
 }

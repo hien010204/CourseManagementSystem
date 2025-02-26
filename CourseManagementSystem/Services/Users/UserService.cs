@@ -98,7 +98,7 @@ namespace CourseManagementSystem.Services.Users
             _context.Users.Add(user);
             _context.SaveChanges();
 
-            return user;  // Trả về thông tin người dùng sau khi đăng ký thành công
+            return user;
         }
 
         public void UpdateUser(User user)
@@ -106,7 +106,7 @@ namespace CourseManagementSystem.Services.Users
             var existingUser = _context.Users.FirstOrDefault(u => u.IdUser == user.IdUser);
             if (existingUser != null)
             {
-                existingUser.UpdatedAt = user.UpdatedAt;  // Cập nhật trạng thái hoặc các trường khác
+                existingUser.UpdatedAt = user.UpdatedAt;  // Cập nhật trạng thái
                 existingUser.Status = user.Status;
                 _context.Users.Update(existingUser);
                 _context.SaveChanges();
@@ -118,7 +118,7 @@ namespace CourseManagementSystem.Services.Users
             var existingUser = _context.Users.FirstOrDefault(u => u.IdUser == user.IdUser);
             if (existingUser != null)
             {
-                existingUser.UpdatedAt = user.UpdatedAt;  // Cập nhật trạng thái hoặc các trường khác
+                existingUser.UpdatedAt = user.UpdatedAt;  // Cập nhật trạng thái
                 existingUser.PasswordHash = user.PasswordHash;
                 _context.Users.Update(existingUser);
                 _context.SaveChanges();

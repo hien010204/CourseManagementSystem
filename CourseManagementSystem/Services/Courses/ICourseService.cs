@@ -18,5 +18,8 @@ namespace CourseManagementSystem.Services.Models
         public List<StudentCourseInfoDto> GetStudentsAndCourses(string enrollmentStatus);
         public List<StudentCourseInfoDto> GetConfirmedStudentsInCourse(int courseId);
         public List<Course> GetCourseByName(string courseName);
+        public List<CourseDto> GetUnassignedCourses();
+        public List<UserDto> GetStudentsNotEnrolled();
+        public bool AssignTeacherToCourse(int courseId, int teacherId);
     }
 }

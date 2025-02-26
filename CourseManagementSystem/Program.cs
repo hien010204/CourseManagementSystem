@@ -6,6 +6,7 @@ using CourseManagementSystem.Services.Email;
 using CourseManagementSystem.Services.Models;
 using CourseManagementSystem.Services.Profile;
 using CourseManagementSystem.Services.QnA;
+using CourseManagementSystem.Services.Schedules;
 using CourseManagementSystem.Services.Users;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -35,6 +36,7 @@ namespace CourseManagementSystem
             builder.Services.AddScoped<IAssignmentService, AssignmentService>();
             builder.Services.AddScoped<IQnAService, QnAService>();
             builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
+            builder.Services.AddScoped<IScheduleService, ScheduleService>();
 
             builder.Services.AddControllers()
             .AddJsonOptions(options =>
