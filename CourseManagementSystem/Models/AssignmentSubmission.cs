@@ -17,6 +17,8 @@ public partial class AssignmentSubmission
 
     public string? Feedback { get; set; }
 
+    public string? SubmissionLink { get; set; }
+
     public virtual Assignment Assignment { get; set; } = null!;
 
     public virtual User Student { get; set; } = null!;

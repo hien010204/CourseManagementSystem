@@ -18,6 +18,7 @@ namespace CourseManagementSystem.Services.Assignments
             // Truy vấn bảng Assignments để lấy tất cả bài tập của khóa học với courseId
             var assignments = await _context.Assignments
                 .Where(a => a.CourseId == courseId)  // Lọc theo CourseID
+                .Include(o => o.AssignmentSubmissions)  // Kết nối với bảng AssignmentSubmissions để lấy thông tin bài nộp
                 .ToListAsync();  // Chuyển đổi kết quả thành danh sách
 
             return assignments;
@@ -119,8 +120,7 @@ namespace CourseManagementSystem.Services.Assignments
             {
                 AssignmentId = assignmentId,
                 StudentId = submissionDto.StudentId,
-                Feedback = submissionDto.Feedback,
-
+                SubmissionLink = submissionDto.SubmissionLink,
                 SubmissionDate = DateTime.Now
             };
 
@@ -132,7 +132,7 @@ namespace CourseManagementSystem.Services.Assignments
             {
                 AssignmentId = submission.AssignmentId,
                 StudentId = submission.StudentId,
-                Feedback = submission.Feedback,
+                SubmissionLink = submission.SubmissionLink,
                 SubmissionDate = (DateTime)submission.SubmissionDate
             };
 
@@ -151,6 +151,7 @@ namespace CourseManagementSystem.Services.Assignments
                     StudentId = s.StudentId,
                     StudentName = s.Student.FullName,  // Lấy tên sinh viên từ bảng Users
                     StudentEmail = s.Student.Email,   // Lấy email sinh viên từ bảng Users
+                    SubmissionLink = s.SubmissionLink, // Link bài nộp
                     SubmissionDate = (DateTime)s.SubmissionDate,
                     Grade = s.Grade,                  // Điểm của bài nộp
                     Feedback = s.Feedback             // Phản hồi của giáo viên
@@ -195,6 +196,7 @@ namespace CourseManagementSystem.Services.Assignments
                 {
                     SubmissionId = s.SubmissionId,
                     StudentName = s.Student.FullName,
+                    SubmissionLink = s.SubmissionLink,
                     Grade = s.Grade,
                     Feedback = s.Feedback,
                     SubmissionDate = (DateTime)s.SubmissionDate
@@ -214,6 +216,7 @@ namespace CourseManagementSystem.Services.Assignments
                 {
                     SubmissionId = s.SubmissionId,
                     StudentName = s.Student.FullName,
+                    SubmissionLink = s.SubmissionLink,
                     Grade = s.Grade,
                     Feedback = s.Feedback,
                     SubmissionDate = (DateTime)s.SubmissionDate
@@ -234,6 +237,7 @@ namespace CourseManagementSystem.Services.Assignments
                     SubmissionId = s.SubmissionId,
                     StudentId = s.StudentId,          // Lấy ID của sinh viên
                     StudentName = s.Student.FullName, // Lấy tên của sinh viên
+                    SubmissionLink = s.SubmissionLink, // Lấy link bài nộp
                     Grade = s.Grade,              // Lấy điểm của bài nộp
                     Feedback = s.Feedback         // Lấy phản hồi của bài nộp
                 })
@@ -259,6 +263,7 @@ namespace CourseManagementSystem.Services.Assignments
                 {
                     SubmissionId = s.SubmissionId,
                     StudentName = s.Student.FullName,
+                    SubmissionLink = s.SubmissionLink,
                     Grade = s.Grade,
                     Feedback = s.Feedback,
                     SubmissionDate = (DateTime)s.SubmissionDate

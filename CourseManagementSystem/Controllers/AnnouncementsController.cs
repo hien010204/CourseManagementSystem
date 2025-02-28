@@ -1,4 +1,4 @@
-﻿using CourseManagementSystem.DTO;
+﻿using CourseManagementSystem.DTO.AnnouncementsDTO;
 using CourseManagementSystem.Services.Announcements;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -41,18 +41,24 @@ namespace CourseManagementSystem.Controllers
 
         [Authorize(Roles = "Admin,Teacher")]
         [HttpPost("create-announcement")]
-        public async Task<ActionResult> CreateAnnouncement([FromBody] AnnouncementDto announcementDto)
+        public async Task<ActionResult> CreateAnnouncement([FromBody] CreateAnnouncementDto createAnnouncementDto)
         {
-            if (announcementDto == null || string.IsNullOrEmpty(announcementDto.Title) || string.IsNullOrEmpty(announcementDto.Content))
+            if (createAnnouncementDto == null || string.IsNullOrEmpty(createAnnouncementDto.Title) || string.IsNullOrEmpty(createAnnouncementDto.Content))
             {
                 return BadRequest("Invalid data. Title and Content are required.");
             }
 
-            // Lấy UserID từ claim
+            //Lấy UserID từ claim (User đang đăng nhập)
             var userId = int.Parse(User.FindFirstValue("IdUser"));
 
-            // Gán UserID vào announcementDto
-            announcementDto.CreatedBy = userId;
+            // Chuyển đổi CreateAnnouncementDto sang AnnouncementDto và gán CreatedBy
+            var announcementDto = new AnnouncementDto
+            {
+                CourseID = createAnnouncementDto.CourseID,
+                Title = createAnnouncementDto.Title,
+                Content = createAnnouncementDto.Content,
+                CreatedBy = userId // Gán CreatedBy từ claim
+            };
 
             // Tạo thông báo
             await _announcementService.CreateAnnouncementAsync(announcementDto);
@@ -60,6 +66,7 @@ namespace CourseManagementSystem.Controllers
             // Trả về kết quả
             return CreatedAtAction(nameof(GetAnnouncementById), new { announcementId = announcementDto.AnnouncementID }, announcementDto);
         }
+
 
 
         [Authorize(Roles = "Admin,Teacher")]
@@ -94,11 +101,10 @@ namespace CourseManagementSystem.Controllers
 
 
         [Authorize(Roles = "Admin,Teacher")]
-        [HttpDelete("{announcementId}")]
+        [HttpDelete("delete/{announcementId}")]
         public async Task<ActionResult> DeleteAnnouncement(int announcementId)
         {
-            // Lấy UserID từ claim
-            var userId = int.Parse(User.FindFirstValue("IdUser"));
+
 
             try
             {
@@ -114,6 +120,25 @@ namespace CourseManagementSystem.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
+        // iter4
+        [HttpGet("search")]
+        public async Task<ActionResult<IEnumerable<AnnouncementDto>>> SearchAnnouncements(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return BadRequest("Title is required for search.");
+            }
+
+            var announcements = await _announcementService.SearchAnnouncementsByTitleAsync(title);
+            if (announcements == null || !announcements.Any())
+            {
+                return NotFound("No announcements found with the specified title.");
+            }
+
+            return Ok(announcements);
+        }
+
+
 
     }
 }
