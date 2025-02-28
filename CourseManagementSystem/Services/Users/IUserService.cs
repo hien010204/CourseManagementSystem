@@ -15,6 +15,7 @@ namespace CourseManagementSystem.Services.Users
         List<User> GetAllUsers();
         User GetUserById(int userId);
         public User GetUserByUsernameOrEmail(string usernameOrEmail);
+        public List<User> GetStudentsByFullName(string fullname, string role);
         bool CheckUsernameExists(string username);
         bool CheckEmailExists(string email);
         void UpdateUser(User user);
@@ -23,5 +24,6 @@ namespace CourseManagementSystem.Services.Users
         void Logout();
         void SavePasswordResetCode(int idUser, string verificationCode);
         string GetPasswordResetCode(int idUser);
+        public List<User> GetUserByStatusAndRole(string status, string role);
     }
 }

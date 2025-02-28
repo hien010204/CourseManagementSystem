@@ -1,4 +1,4 @@
-﻿using CourseManagementSystem.DTO;
+﻿using CourseManagementSystem.DTO.AnnouncementsDTO;
 using CourseManagementSystem.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -50,6 +50,12 @@ namespace CourseManagementSystem.Services.Announcements
 
         public async Task CreateAnnouncementAsync(AnnouncementDto announcementDto)
         {
+            // Kiểm tra xem CourseID có tồn tại trong bảng Courses không
+            var courseExists = await _context.Courses.AnyAsync(c => c.CourseId == announcementDto.CourseID);
+            if (!courseExists)
+            {
+                throw new Exception("Course not found.");
+            }
             var announcement = new Announcement
             {
                 CourseId = announcementDto.CourseID,
@@ -89,6 +95,32 @@ namespace CourseManagementSystem.Services.Announcements
             _context.Announcements.Remove(announcement);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<IEnumerable<AnnouncementDto>> SearchAnnouncementsByTitleAsync(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return new List<AnnouncementDto>(); // Trả về danh sách trống nếu title là null hoặc rỗng
+            }
+
+            // Sử dụng LIKE trong SQL để tìm kiếm không phân biệt chữ hoa chữ thường
+            var announcements = await _context.Announcements
+                .Where(a => EF.Functions.Like(a.Title, $"%{title}%"))
+                .ToListAsync();
+
+            return announcements.Select(a => new AnnouncementDto
+            {
+                AnnouncementID = a.AnnouncementId,
+                CourseID = a.CourseId,
+                Title = a.Title,
+                Content = a.Content,
+                CreatedAt = a.CreatedAt ?? DateTime.Now,
+                CreatedBy = a.CreatedBy
+            });
+        }
+
+
+
     }
 
 }

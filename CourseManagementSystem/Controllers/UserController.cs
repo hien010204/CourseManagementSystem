@@ -1,5 +1,6 @@
 ﻿using CourseManagementSystem.Models;
 using CourseManagementSystem.Services.Email;
+using CourseManagementSystem.Services.Profile;
 using CourseManagementSystem.Services.Users;
 using MailKit.Net.Smtp;
 using Microsoft.AspNetCore.Authorization;
@@ -13,11 +14,13 @@ namespace CourseManagementSystem.Controllers
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
+        private readonly IProfileService _profileService;
         private readonly IConfiguration _config;
-        public UserController(IUserService userService, IConfiguration config)
+        public UserController(IUserService userService, IConfiguration config, IProfileService profileService)
         {
             _userService = userService;
             _config = config;
+            _profileService = profileService;
         }
 
         // API to add a user (only Admin has permission)
@@ -142,5 +145,72 @@ namespace CourseManagementSystem.Controllers
 
             return Ok(users);
         }
+
+        //iter4
+
+        // tìm kiểu user theo tên, chia ra teacher và student
+        [Authorize(Roles = "Admin")]
+        [HttpGet("search-user/{fullName}")]
+        public IActionResult SearchUserByName(string fullName, string role)
+        {
+            var user = _userService.GetStudentsByFullName(fullName, role);
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found." });
+            }
+            return Ok(user);
+        }
+
+        // Update User by ID bao gồm tên, email và số điện thoại
+        [Authorize(Roles = "Admin")]
+        [HttpPut("update-user/{userId}")]
+        public IActionResult UpdateUserById(int userId, [FromBody] UpdateProfileRequest request)
+        {
+            var user = _userService.GetUserById(userId);
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found." });
+            }
+
+            // Update the profile information
+            var result = _profileService.UpdateProfile(user, request.FullName, request.Email, request.PhoneNumber);
+            if (!result)
+            {
+                return BadRequest(new { message = "Profile update failed." });
+            }
+
+            return Ok(new { message = "Profile updated successfully." });
+        }
+        // filter lọc ra danh sách người dùng đang hoạt động theo Role (Student and Teacher)
+        [Authorize(Roles = "Admin")]
+        [HttpGet("active-users/{role}")]
+        public IActionResult GetActiveUsersByRole(string role)
+        {
+            var activeUsers = _userService.GetUserByStatusAndRole("Active", role);
+
+            if (activeUsers == null || !activeUsers.Any())
+            {
+                return NotFound(new { message = $"No active {role} users found." });
+            }
+
+            return Ok(activeUsers);
+        }
+        // lấy ra danh sách người dùng đã bị khóa acc theo Role(Student and Teacher)
+        [Authorize(Roles = "Admin")]
+        [HttpGet("inactive-users/{role}")]
+        public IActionResult GetInactiveUsersByRole(string role)
+        {
+            var inactiveUsers = _userService.GetUserByStatusAndRole("Inactive", role);
+
+            if (inactiveUsers == null || !inactiveUsers.Any())
+            {
+                return NotFound(new { message = $"No inactive {role} users found." });
+            }
+
+            return Ok(inactiveUsers);
+        }
+
+
     }
 }
+

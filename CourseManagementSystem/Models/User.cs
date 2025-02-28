@@ -1,4 +1,7 @@
-﻿namespace CourseManagementSystem.Models;
+﻿using System;
+using System.Collections.Generic;
+
+namespace CourseManagementSystem.Models;
 
 public partial class User
 {
@@ -28,17 +31,17 @@ public partial class User
 
     public virtual ICollection<Announcement> Announcements { get; set; } = new List<Announcement>();
 
+    public virtual ICollection<Answer> Answers { get; set; } = new List<Answer>();
+
     public virtual ICollection<AssignmentSubmission> AssignmentSubmissions { get; set; } = new List<AssignmentSubmission>();
+
+    public virtual ICollection<Comment> Comments { get; set; } = new List<Comment>();
 
     public virtual ICollection<CourseEnrollment> CourseEnrollments { get; set; } = new List<CourseEnrollment>();
 
     public virtual ICollection<Course> Courses { get; set; } = new List<Course>();
 
-    public virtual ICollection<Schedule> Schedules { get; set; } = new List<Schedule>();
     public virtual ICollection<Question> Questions { get; set; } = new List<Question>();
-    public virtual ICollection<Answer> Answers { get; set; } = new List<Answer>();
-    public virtual ICollection<Comment> Comments { get; set; } = new List<Comment>();
 
-
-
+    public virtual ICollection<Schedule> Schedules { get; set; } = new List<Schedule>();
 }

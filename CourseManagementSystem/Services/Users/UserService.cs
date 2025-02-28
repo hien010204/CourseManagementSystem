@@ -82,7 +82,25 @@ namespace CourseManagementSystem.Services.Users
         public User GetUserByUsernameOrEmail(string usernameOrEmail)
         {
             return _context.Users
-                .FirstOrDefault(u => u.UserName == usernameOrEmail || u.Email == usernameOrEmail);
+                .FirstOrDefault(u => u.FullName == usernameOrEmail || u.Email == usernameOrEmail);
+        }
+
+        public List<User> GetStudentsByFullName(string fullname, string role)
+        {
+            return _context.Users
+        .Where(u => u.FullName.ToLower().Contains(fullname.ToLower()) && u.Role == role) // Case-insensitive search
+        .Select(u => new User
+        {
+            IdUser = u.IdUser,
+            UserName = u.UserName,
+            FullName = u.FullName,
+            Email = u.Email,
+            Role = u.Role,
+            Status = u.Status,
+            CreatedAt = u.CreatedAt
+        })
+        .ToList();
+
         }
         public void Logout()
         {
@@ -204,5 +222,23 @@ namespace CourseManagementSystem.Services.Users
         {
             return _context.Users.Any(u => u.Email == email);
         }
+
+        public List<User> GetUserByStatusAndRole(string status, string role)
+        {
+            return _context.Users
+            .Where(u => u.Status == status && u.Role == role) // Filter by both Status and Role
+            .Select(u => new User
+            {
+                IdUser = u.IdUser,
+                UserName = u.UserName,
+                FullName = u.FullName,
+                Email = u.Email,
+                Role = u.Role,
+                Status = u.Status,
+                CreatedAt = u.CreatedAt
+            })
+            .ToList();
+        }
+
     }
 }

@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace CourseManagementSystem.DTO
+namespace CourseManagementSystem.DTO.AnnouncementsDTO
 {
     public class AnnouncementDto
     {

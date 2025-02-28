@@ -1,4 +1,4 @@
-﻿using CourseManagementSystem.DTO;
+﻿using CourseManagementSystem.DTO.AnnouncementsDTO;
 
 namespace CourseManagementSystem.Services.Announcements
 {
@@ -9,6 +9,7 @@ namespace CourseManagementSystem.Services.Announcements
         Task CreateAnnouncementAsync(AnnouncementDto announcementDto);
         Task UpdateAnnouncementAsync(int announcementId, AnnouncementDto announcementDto);
         Task DeleteAnnouncementAsync(int announcementId);
+        public Task<IEnumerable<AnnouncementDto>> SearchAnnouncementsByTitleAsync(string title);
     }
 
 }
