@@ -122,9 +122,29 @@ namespace CourseManagementSystem.Controllers
         public IActionResult GetCourseById([FromRoute] int courseId)
         {
             var course = _courseService.GetCourseById(courseId);
+            var teacher = _courseService.GetTeacherByCourseId(courseId);
             if (course == null)
             {
                 return NotFound(new { message = "Course does not exist." });
+            }
+
+            // Kiểm tra xem giảng viên có tồn tại không trước khi hiển thị
+            if (teacher == null)
+            {
+                return Ok(new
+                {
+                    course.CourseId,
+                    course.CourseName,
+                    course.Description,
+                    startDate = course.StartDate,
+                    endDate = course.EndDate,
+                    createdBy = new
+                    {
+                        course.CreatedByNavigation.FullName,
+                        course.CreatedByNavigation.Role
+                    },
+                    teacher = "No teacher assigned" // Thêm thông báo nếu không có giảng viên
+                });
             }
 
             return Ok(new
@@ -138,9 +158,16 @@ namespace CourseManagementSystem.Controllers
                 {
                     course.CreatedByNavigation.FullName,
                     course.CreatedByNavigation.Role
+                },
+                teacher = new
+                {
+                    teacher.FullName,
+                    teacher.Email,
+                    teacher.Role
                 }
             });
         }
+
 
 
 

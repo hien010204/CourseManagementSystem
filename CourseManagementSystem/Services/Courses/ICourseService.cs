@@ -21,5 +21,6 @@ namespace CourseManagementSystem.Services.Models
         public List<CourseDto> GetUnassignedCourses();
         public List<UserDto> GetStudentsNotEnrolled();
         public bool AssignTeacherToCourse(int courseId, int teacherId);
+        public User GetTeacherByCourseId(int courseId);
     }
 }
