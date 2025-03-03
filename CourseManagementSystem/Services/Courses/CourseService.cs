@@ -320,8 +320,44 @@ namespace CourseManagementSystem.Services.Courses
                 return false;  // Nếu không tìm thấy giảng viên
             }
 
+            // Thêm giảng viên vào khóa học trong bảng Schedules
+            var schedule = new Schedule
+            {
+                CourseId = courseId,
+                TeacherId = teacherId
+            };
+
+            _context.Schedules.Add(schedule);
             _context.SaveChanges();  // Lưu thay đổi vào cơ sở dữ liệu
+
             return true;  // Gán giảng viên thành công
+        }
+
+        public User GetTeacherByCourseId(int courseId)
+        {
+            // Tìm khóa học theo CourseId và bao gồm lịch học (Schedules)
+            var course = _context.Courses
+                .Include(c => c.Schedules)  // Bao gồm lịch học (Schedules) cho khóa học
+                .FirstOrDefault(c => c.CourseId == courseId);
+
+            if (course == null)
+            {
+                return null;  // Nếu không tìm thấy khóa học
+            }
+
+            // Lấy lịch học đầu tiên có TeacherId (giảng viên)
+            var schedule = course.Schedules.FirstOrDefault(s => s.TeacherId != null);
+
+            if (schedule == null)
+            {
+                return null;  // Nếu không có giảng viên nào được gán
+            }
+
+            // Lấy thông tin giảng viên từ bảng Users dựa trên TeacherId
+            var teacher = _context.Users
+                .FirstOrDefault(u => u.IdUser == schedule.TeacherId && u.Role == "Teacher");
+
+            return teacher; // Trả về giảng viên
         }
 
 
