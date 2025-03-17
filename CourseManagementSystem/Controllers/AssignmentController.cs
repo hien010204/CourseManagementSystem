@@ -144,6 +144,7 @@ namespace CourseManagementSystem.Controllers
             return Ok(gradedSubmission);
         }
 
+
         //iter4
         // List bài chưa chấm điểm
         [Authorize(Roles = "Teacher")]
@@ -200,8 +201,19 @@ namespace CourseManagementSystem.Controllers
         [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> GetStudentsMissingSubmission(int assignmentId)
         {
-            var studentsMissingSubmission = await _assignmentService.GetStudentsMissingSubmission(assignmentId);
-            return Ok(studentsMissingSubmission);
+            try
+            {
+                var studentsMissingSubmission = await _assignmentService.GetStudentsMissingSubmission(assignmentId);
+                if (!studentsMissingSubmission.Any())
+                {
+                    return Ok(new { message = "All students have submitted their assignments." });
+                }
+                return Ok(studentsMissingSubmission);
+            }
+            catch (Exception ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
         }
 
 
@@ -215,6 +227,43 @@ namespace CourseManagementSystem.Controllers
                 return NotFound("Assignment submission not found.");
 
             return Ok(updatedSubmission);
+        }
+
+        // Chỉnh sửa bài nộp cho học sinh
+        [HttpPut("edit-submission/{submissionId}")]
+        [Authorize(Roles = "Student")]
+        public async Task<IActionResult> EditSubmission(int submissionId, [FromBody] EditSubmissionDto editSubmissionDto)
+        {
+            // Kiểm tra tính hợp lệ của dữ liệu đầu vào
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState); // Trả về lỗi nếu dữ liệu không hợp lệ
+            }
+
+            // Lấy thông tin người dùng hiện tại từ token
+            var currentUserIdClaim = User.FindFirst("IdUser");
+            if (currentUserIdClaim == null)
+            {
+                return Unauthorized(new { message = "User information not found in token." });
+            }
+
+            var currentUserId = int.Parse(currentUserIdClaim.Value);
+
+            // Gọi dịch vụ để chỉnh sửa bài nộp
+            var updatedSubmission = await _assignmentService.EditSubmission(submissionId, currentUserId, editSubmissionDto);
+
+            // Kiểm tra nếu bài nộp không tồn tại hoặc không thuộc về học sinh hiện tại
+            if (updatedSubmission == null)
+            {
+                return NotFound(new { message = "Submission not found or you are not authorized to edit this submission." });
+            }
+
+            // Trả về bài nộp đã được cập nhật
+            return Ok(new
+            {
+                message = "Submission edited successfully!",
+                submission = updatedSubmission
+            });
         }
 
 

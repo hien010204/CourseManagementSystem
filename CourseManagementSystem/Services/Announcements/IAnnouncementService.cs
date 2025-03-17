@@ -10,6 +10,7 @@ namespace CourseManagementSystem.Services.Announcements
         Task UpdateAnnouncementAsync(int announcementId, AnnouncementDto announcementDto);
         Task DeleteAnnouncementAsync(int announcementId);
         public Task<IEnumerable<AnnouncementDto>> SearchAnnouncementsByTitleAsync(string title);
+        Task<IEnumerable<AnnouncementDto>> GetAllAnnouncementsAsync();
     }
 
 }

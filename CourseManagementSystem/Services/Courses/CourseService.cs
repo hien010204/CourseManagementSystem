@@ -1,4 +1,5 @@
 ﻿using CourseManagementSystem.DTO;
+using CourseManagementSystem.DTO.UserDTO;
 using CourseManagementSystem.Models;
 using CourseManagementSystem.Services.Models;
 using Microsoft.EntityFrameworkCore;
@@ -286,15 +287,17 @@ namespace CourseManagementSystem.Services.Courses
         }
 
         // Lấy sinh viên chưa đăng ký khóa học
-        public List<UserDto> GetStudentsNotEnrolled()
+        public List<StudentsNotEnrolledDto> GetStudentsNotEnrolled()
         {
             var students = _context.Users
                 .Where(u => u.Role == "Student" && !_context.CourseEnrollments
                     .Any(ce => ce.StudentId == u.IdUser))
-                .Select(u => new UserDto
+                .Select(u => new StudentsNotEnrolledDto
                 {
                     UserId = u.IdUser,
+                    Role = u.Role,
                     FullName = u.FullName,
+                    Status = u.Status,
                     Email = u.Email
                 })
                 .ToList();
@@ -303,21 +306,35 @@ namespace CourseManagementSystem.Services.Courses
         }
 
 
-        // Gán giảng viên cho khóa học
-        public bool AssignTeacherToCourse(int courseId, int teacherId)
+        // Hàm gán giảng viên cho khóa học với kiểm tra xem đã có giáo viên chưa
+        public (bool Success, string ErrorMessage) AssignTeacherToCourse(int courseId, int teacherId)
         {
             // Tìm khóa học theo CourseId
-            var course = _context.Courses.FirstOrDefault(c => c.CourseId == courseId);
+            var course = _context.Courses
+                .Include(c => c.Schedules) // Bao gồm thông tin lịch học để kiểm tra
+                .FirstOrDefault(c => c.CourseId == courseId);
+
             if (course == null)
             {
-                return false;  // Nếu không tìm thấy khóa học
+                return (false, "Course not found."); // Khóa học không tồn tại
+            }
+
+            // Kiểm tra xem khóa học đã có giáo viên nào được gán chưa
+            var existingTeacher = course.Schedules.FirstOrDefault(s => s.TeacherId != null);
+            if (existingTeacher != null)
+            {
+                var currentTeacher = _context.Users
+                    .FirstOrDefault(u => u.IdUser == existingTeacher.TeacherId);
+                return (false, $"This course already has a teacher assigned: {currentTeacher?.FullName ?? "Unknown"}.");
             }
 
             // Kiểm tra xem giảng viên có tồn tại trong hệ thống và có vai trò "Teacher"
-            var teacher = _context.Users.FirstOrDefault(u => u.IdUser == teacherId && u.Role == "Teacher");
+            var teacher = _context.Users
+                .FirstOrDefault(u => u.IdUser == teacherId && u.Role == "Teacher");
+
             if (teacher == null)
             {
-                return false;  // Nếu không tìm thấy giảng viên
+                return (false, "Teacher not found or user is not a teacher."); // Giảng viên không tồn tại hoặc không phải giáo viên
             }
 
             // Thêm giảng viên vào khóa học trong bảng Schedules
@@ -328,9 +345,9 @@ namespace CourseManagementSystem.Services.Courses
             };
 
             _context.Schedules.Add(schedule);
-            _context.SaveChanges();  // Lưu thay đổi vào cơ sở dữ liệu
+            _context.SaveChanges(); // Lưu thay đổi vào cơ sở dữ liệu
 
-            return true;  // Gán giảng viên thành công
+            return (true, "Teacher assigned successfully."); // Gán giảng viên thành công
         }
 
         public User GetTeacherByCourseId(int courseId)
@@ -360,6 +377,90 @@ namespace CourseManagementSystem.Services.Courses
             return teacher; // Trả về giảng viên
         }
 
+        // Xoá giảng viên khỏi khóa học
+        public (bool Success, string ErrorMessage) RemoveTeacherFromCourse(int courseId)
+        {
+            var course = _context.Courses
+                .Include(c => c.Schedules)
+                .FirstOrDefault(c => c.CourseId == courseId);
+
+            if (course == null)
+            {
+                return (false, "Course not found.");
+            }
+
+            var schedulesWithTeacher = course.Schedules.Where(s => s.TeacherId != null).ToList();
+            if (!schedulesWithTeacher.Any())
+            {
+                return (false, "No teacher is assigned to this course.");
+            }
+
+            _context.Schedules.RemoveRange(schedulesWithTeacher); // Xóa tất cả lịch học có giảng viên
+            _context.SaveChanges();
+
+            return (true, "Teacher removed from course successfully.");
+        }
+        public List<CourseDto> GetCoursesByTeacherId(int teacherId)
+        {
+            var courses = _context.Courses
+                .Where(c => c.Schedules.Any(s => s.TeacherId == teacherId)) // Lọc các khóa học mà giảng viên đang dạy
+                .Select(c => new CourseDto
+                {
+                    CourseId = c.CourseId,
+                    CourseName = c.CourseName,
+                    Description = c.Description,
+                    StartDate = c.StartDate,
+                    EndDate = c.EndDate,
+                    CreatedByFullName = c.CreatedByNavigation.FullName,
+                    CreatedByRole = c.CreatedByNavigation.Role
+                })
+                .ToList();
+
+            return courses;
+        }
+        public List<CourseActiveDto> GetAllActiveCourses()
+        {
+            // Truy vấn dữ liệu thô từ cơ sở dữ liệu
+            var activeCoursesQuery = _context.Courses
+                .Include(c => c.CreatedByNavigation) // Tải thông tin người tạo (User)
+                .Where(c =>
+                    // Điều kiện 1: Có học sinh tham gia với trạng thái "Confirmed"
+                    c.CourseEnrollments.Any(ce => ce.EnrollmentStatus == "Confirmed") &&
+                    // Điều kiện 2: Có giáo viên dạy (Schedules có TeacherId)
+                    c.Schedules.Any(s => s.TeacherId != null) &&
+                    // Điều kiện 3: Có lịch học (Schedules không rỗng)
+                    c.Schedules.Any() &&
+                    // Điều kiện 4: Có lịch học mà Room không null
+                    c.Schedules.Any(s => s.Room != null)
+                )
+                .Select(c => new
+                {
+                    Course = c,
+                    // Lấy lịch đầu tiên có TeacherId và Room không null
+                    Schedule = c.Schedules.FirstOrDefault(s => s.TeacherId != null && s.Room != null)
+                })
+                .Where(item => item.Schedule != null) // Loại bỏ các bản ghi không có Schedule phù hợp
+                .ToList(); // Thực thi truy vấn và đưa dữ liệu vào bộ nhớ
+
+            // Ánh xạ dữ liệu sang CourseActiveDto với xử lý null
+            var activeCourses = activeCoursesQuery.Select(item => new CourseActiveDto
+            {
+                CourseId = item.Course.CourseId,
+                TeacherId = item.Schedule.TeacherId, // Xử lý null cho TeacherId
+                ScheduleId = item.Schedule.ScheduleId,
+                CourseName = item.Course.CourseName ?? string.Empty, // Xử lý null cho CourseName
+                Description = item.Course.Description ?? string.Empty, // Xử lý null cho Description
+                StartDate = item.Course.StartDate,
+                EndDate = item.Course.EndDate,
+                ScheduleDate = item.Schedule.ScheduleDate,
+                EnrollmentStatus = "Active", // Giá trị mặc định
+                CreatedByFullName = item.Course.CreatedByNavigation?.FullName ?? string.Empty, // Đã tải, nhưng vẫn xử lý null cho an toàn
+                CreatedByRole = item.Course.CreatedByNavigation?.Role ?? string.Empty, // Đã tải, nhưng vẫn xử lý null cho an toàn
+                Room = item.Schedule.Room // Room đã được lọc không null
+            }).ToList();
+
+            return activeCourses;
+        }
 
     }
 }

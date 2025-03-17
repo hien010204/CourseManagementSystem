@@ -67,6 +67,7 @@ namespace CourseManagementSystem.Services.Announcements
 
             _context.Announcements.Add(announcement);
             await _context.SaveChangesAsync();
+            announcementDto.AnnouncementID = announcement.AnnouncementId;
         }
 
         public async Task UpdateAnnouncementAsync(int announcementId, AnnouncementDto announcementDto)
@@ -119,7 +120,21 @@ namespace CourseManagementSystem.Services.Announcements
             });
         }
 
+        public async Task<IEnumerable<AnnouncementDto>> GetAllAnnouncementsAsync()
+        {
+            var announcements = await _context.Announcements
+                .ToListAsync();
 
+            return announcements.Select(a => new AnnouncementDto
+            {
+                AnnouncementID = a.AnnouncementId,
+                CourseID = a.CourseId,
+                Title = a.Title,
+                Content = a.Content,
+                CreatedAt = (DateTime)a.CreatedAt,
+                CreatedBy = a.CreatedBy
+            });
+        }
 
     }
 

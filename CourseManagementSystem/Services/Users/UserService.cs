@@ -168,9 +168,6 @@ namespace CourseManagementSystem.Services.Users
 
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.PasswordHash);
 
-            // Mã hóa mật khẩu trước khi lưu
-
-
             // Thêm user mới vào database
             _context.Users.Add(user);
             _context.SaveChanges();

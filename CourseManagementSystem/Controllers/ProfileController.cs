@@ -20,7 +20,7 @@ namespace CourseManagementSystem.Controllers
             _userService = userService;
         }
 
-
+        // token claim 
         [HttpGet("get-profile")]
         public IActionResult GetProfile()
         {

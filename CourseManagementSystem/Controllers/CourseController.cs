@@ -286,7 +286,7 @@ namespace CourseManagementSystem.Controllers
             return Ok(studentsAndCourses);
         }
 
-
+        //list student in course
 
         [Authorize(Roles = "Admin,Teacher")]
         [HttpGet("confirmed-students/{courseId}")]
@@ -331,24 +331,81 @@ namespace CourseManagementSystem.Controllers
 
 
 
-        [Authorize(Roles = "Admin, Teacher")]
+        [Authorize(Roles = "Admin,Teacher")]
         [HttpPost("assign-teacher/{courseId}")]
-        public IActionResult AssignTeacherToCourse(int courseId, [FromBody] int teacherId)
+        public IActionResult AssignTeacherToCourse(int courseId, [FromQuery] int teacherId)
         {
+
             var course = _courseService.GetCourseById(courseId);
             if (course == null)
             {
                 return NotFound(new { message = "Course not found." });
             }
 
-            var teacherAssigned = _courseService.AssignTeacherToCourse(courseId, teacherId);
-            if (!teacherAssigned)
+            var (success, errorMessage) = _courseService.AssignTeacherToCourse(courseId, teacherId);
+            if (!success)
             {
-                return BadRequest(new { message = "Failed to assign teacher." });
+                return BadRequest(new { message = errorMessage });
             }
 
-            return Ok(new { message = "Teacher assigned successfully!" });
+            return Ok(new { message = errorMessage }); // errorMessage ở đây là thông báo thành công
         }
 
+
+        [Authorize(Roles = "Admin")] // Chỉ Admin được phép sử dụng
+        [HttpDelete("remove-teacher/{courseId}")]
+        public IActionResult RemoveTeacherFromCourse(int courseId)
+        {
+
+            var course = _courseService.GetCourseById(courseId);
+            if (course == null)
+            {
+                return NotFound(new { message = "Course not found." });
+            }
+
+            var (success, errorMessage) = _courseService.RemoveTeacherFromCourse(courseId);
+            if (!success)
+            {
+                return BadRequest(new { message = errorMessage });
+            }
+
+            return Ok(new { message = errorMessage });
+        }
+
+        // Endpoint cho Admin để lấy danh sách khóa học của một giảng viên cụ thể
+        [Authorize(Roles = "Admin,Teacher")]
+        [HttpGet("teacher-courses/{teacherId}")]
+        public IActionResult GetCoursesByTeacherId(int teacherId)
+        {
+
+
+            var teacher = _userService.GetUserById(teacherId);
+            if (teacher == null || teacher.Role != "Teacher")
+            {
+                return NotFound(new { message = "Teacher not found or user is not a teacher." });
+            }
+
+            var teacherCourses = _courseService.GetCoursesByTeacherId(teacherId);
+            if (teacherCourses == null || !teacherCourses.Any())
+            {
+                return NotFound(new { message = $"Teacher with ID {teacherId} is not teaching any courses." });
+            }
+
+            return Ok(teacherCourses);
+        }
+
+        [Authorize(Roles = "Admin,Teacher")]
+        [HttpGet("active-courses")]
+        public IActionResult GetAllActiveCourses()
+        {
+            var activeCourses = _courseService.GetAllActiveCourses();
+
+            if (activeCourses == null || !activeCourses.Any())
+            {
+                return NotFound(new { message = "No active courses found with students, teacher, and schedule." });
+            }
+
+            return Ok(activeCourses);
+        }
     }
 }
