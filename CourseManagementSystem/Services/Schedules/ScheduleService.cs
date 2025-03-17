@@ -22,11 +22,11 @@ namespace CourseManagementSystem.Services.Schedules
                 .Select(s => new ScheduleDto
                 {
                     CourseId = s.CourseId,
+                    ScheduleId = s.ScheduleId,
                     ScheduleDate = s.ScheduleDate,
                     StartTime = s.StartTime,
                     EndTime = s.EndTime,
                     Room = s.Room,
-                    TeacherName = s.Teacher.FullName
                 })
                 .ToListAsync();
 
@@ -48,15 +48,21 @@ namespace CourseManagementSystem.Services.Schedules
 
             _context.Schedules.Add(schedule);
             await _context.SaveChangesAsync();
+            // Tải lại đối tượng từ database để lấy ScheduleId
+            var addedSchedule = await _context.Schedules
+                .FirstOrDefaultAsync(s => s.ScheduleId == schedule.ScheduleId);
+
+            if (addedSchedule == null)
+                throw new Exception("Failed to retrieve the added schedule.");
 
             return new ScheduleDto
             {
-                CourseId = schedule.CourseId,
-                ScheduleDate = schedule.ScheduleDate,
-                StartTime = schedule.StartTime,
-                EndTime = schedule.EndTime,
-                Room = schedule.Room,
-                TeacherName = schedule.Teacher.FullName
+                ScheduleId = addedSchedule.ScheduleId,
+                CourseId = addedSchedule.CourseId,
+                ScheduleDate = addedSchedule.ScheduleDate,
+                StartTime = addedSchedule.StartTime,
+                EndTime = addedSchedule.EndTime,
+                Room = addedSchedule.Room,
             };
         }
 
@@ -73,18 +79,24 @@ namespace CourseManagementSystem.Services.Schedules
             schedule.StartTime = editScheduleDto.StartTime;
             schedule.EndTime = editScheduleDto.EndTime;
             schedule.Room = editScheduleDto.Room;
-            schedule.TeacherId = editScheduleDto.TeacherID;
 
+            _context.Schedules.Update(schedule);
             await _context.SaveChangesAsync();
+            // Tải lại đối tượng từ database để lấy ScheduleId
+            var updatedSchedule = await _context.Schedules
+                .FirstOrDefaultAsync(s => s.ScheduleId == scheduleId);
+
+            if (updatedSchedule == null)
+                throw new Exception("Failed to retrieve the updated schedule.");
 
             return new ScheduleDto
             {
-                CourseId = schedule.CourseId,
-                ScheduleDate = schedule.ScheduleDate,
-                StartTime = schedule.StartTime,
-                EndTime = schedule.EndTime,
-                Room = schedule.Room,
-                TeacherName = schedule.Teacher.FullName
+                ScheduleId = updatedSchedule.ScheduleId,
+                CourseId = updatedSchedule.CourseId,
+                ScheduleDate = updatedSchedule.ScheduleDate,
+                StartTime = updatedSchedule.StartTime,
+                EndTime = updatedSchedule.EndTime,
+                Room = updatedSchedule.Room,
             };
         }
 
@@ -111,11 +123,11 @@ namespace CourseManagementSystem.Services.Schedules
                 .Select(s => new ScheduleDto
                 {
                     CourseId = s.CourseId,
+                    ScheduleId = s.ScheduleId,
                     ScheduleDate = s.ScheduleDate,
                     StartTime = s.StartTime,
                     EndTime = s.EndTime,
                     Room = s.Room,
-                    TeacherName = s.Teacher.FullName
                 })
                 .ToListAsync();
 

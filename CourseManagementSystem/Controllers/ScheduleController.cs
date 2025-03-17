@@ -42,7 +42,6 @@ namespace CourseManagementSystem.Controllers
         }
 
         [HttpGet("get-schedule/{courseId}")]
-        [Authorize(Roles = "Teacher, Student")]
         public async Task<IActionResult> GetSchedule(int courseId)
         {
             var schedules = await _scheduleService.GetSchedulesByCourseId(courseId);

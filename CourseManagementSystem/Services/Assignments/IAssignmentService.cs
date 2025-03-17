@@ -20,7 +20,8 @@ namespace CourseManagementSystem.Services.Assignments
         public Task<StudentSubmissionDto> GetGradeAndFeedback(int submissionId);
         public Task<List<StudentSubmissionDto>> GetGradedAndFeedbackSubmissions();
         public Task<List<Assignment>> FilterAssignmentsByDueDate(int courseId, DateOnly? dueDate);
-        public Task<List<User>> GetStudentsMissingSubmission(int assignmentId);
+        public Task<List<StudentMissingSubmissionDto>> GetStudentsMissingSubmission(int assignmentId);
         public Task<AssignmentSubmission> EditGradeAndFeedback(int submissionId, GradeAssignmentDto gradeDto);
+        Task<AssignmentSubmission> EditSubmission(int submissionId, int studentId, EditSubmissionDto editSubmissionDto);
     }
 }

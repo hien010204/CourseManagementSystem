@@ -109,7 +109,7 @@ namespace CourseManagementSystem.Controllers
             try
             {
                 await _announcementService.DeleteAnnouncementAsync(announcementId);
-                return NoContent();
+                return Ok(new { message = "Delete Successfully." });
             }
             catch (KeyNotFoundException)
             {
@@ -138,7 +138,27 @@ namespace CourseManagementSystem.Controllers
             return Ok(announcements);
         }
 
+        [Authorize(Roles = "Admin")]
+        [HttpGet("announcements/all")]
+        public async Task<IActionResult> GetAllAnnouncements()
+        {
+            try
+            {
+                // Lấy tất cả thông báo từ cơ sở dữ liệu
+                var announcements = await _announcementService.GetAllAnnouncementsAsync();
 
+                if (announcements == null || !announcements.Any())
+                {
+                    return NotFound(new { message = "No announcements found." });
+                }
+
+                return Ok(announcements);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while retrieving announcements.", error = ex.Message });
+            }
+        }
 
     }
 }

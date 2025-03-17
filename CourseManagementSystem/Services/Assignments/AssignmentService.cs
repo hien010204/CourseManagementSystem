@@ -283,12 +283,39 @@ namespace CourseManagementSystem.Services.Assignments
             return await assignmentsQuery.ToListAsync();
         }
 
-        public async Task<List<User>> GetStudentsMissingSubmission(int assignmentId)
+        public async Task<List<StudentMissingSubmissionDto>> GetStudentsMissingSubmission(int assignmentId)
         {
-            var studentsMissingSubmission = await _context.Users
-                .Where(s => s.Role == "Student" &&
-                            !_context.AssignmentSubmissions.Any(sub => sub.StudentId == s.IdUser && sub.AssignmentId == assignmentId))
-                .ToListAsync();
+            // 1. Lấy thông tin bài tập và khóa học tương ứng
+            var assignment = await _context.Assignments
+                .Where(a => a.AssignmentId == assignmentId)
+                .Include(a => a.Course)
+                .ThenInclude(c => c.CourseEnrollments)
+                .ThenInclude(ce => ce.Student)
+                .FirstOrDefaultAsync();
+
+            if (assignment == null)
+            {
+                throw new Exception("Assignment not found.");
+            }
+
+            // 2. Lấy danh sách sinh viên trong khóa học
+            var studentsInCourse = assignment.Course.CourseEnrollments
+                .Select(ce => new StudentMissingSubmissionDto
+                {
+                    StudentId = ce.Student.IdUser,
+                    StudentName = ce.Student.FullName,
+                    StudentEmail = ce.Student.Email
+                })
+                .ToList();
+
+            // 3. Lấy danh sách sinh viên đã nộp bài
+            var submittedStudents = await GetSubmissionsByAssignmentId(assignmentId);
+            var submittedStudentIds = submittedStudents.Select(s => s.StudentId).ToList();
+
+            // 4. Lọc danh sách sinh viên chưa nộp bài
+            var studentsMissingSubmission = studentsInCourse
+                .Where(s => !submittedStudentIds.Contains(s.StudentId))
+                .ToList();
 
             return studentsMissingSubmission;
         }
@@ -310,6 +337,27 @@ namespace CourseManagementSystem.Services.Assignments
             return submission;
         }
 
+        public async Task<AssignmentSubmission> EditSubmission(int submissionId, int studentId, EditSubmissionDto editSubmissionDto)
+        {
+            // Tìm bài nộp theo submissionId
+            var submission = await _context.AssignmentSubmissions
+                .FirstOrDefaultAsync(s => s.SubmissionId == submissionId && s.StudentId == studentId);
 
+            // Kiểm tra nếu bài nộp không tồn tại hoặc không thuộc về học sinh hiện tại
+            if (submission == null)
+            {
+                return null; // Trả về null nếu không tìm thấy hoặc không có quyền
+            }
+
+            // Cập nhật thông tin bài nộp
+            submission.SubmissionLink = editSubmissionDto.SubmissionLink ?? submission.SubmissionLink;
+            submission.SubmissionDate = DateTime.Now; // Cập nhật ngày nộp mới
+
+            // Lưu thay đổi vào cơ sở dữ liệu
+            _context.AssignmentSubmissions.Update(submission);
+            await _context.SaveChangesAsync();
+
+            return submission; // Trả về bài nộp đã được cập nhật
+        }
     }
 }
